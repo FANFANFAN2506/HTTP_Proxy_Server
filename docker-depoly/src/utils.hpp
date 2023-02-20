@@ -1,9 +1,11 @@
 #include <stdio.h>
-#include <string.h>
-#include <iostream>
 #include <stdlib.h>
-#include <vector>
+#include <string.h>
 #include <sys/socket.h>
+
+#include <ctime>
+#include <iostream>
+#include <vector>
 
 std::string recvAll(int client_fd) {
   int data_rec = 0;
@@ -32,4 +34,13 @@ std::string recvAll(int client_fd) {
     request += data_buff[i];
   }
   return request;
+}
+
+std::string get_current_Time() {
+  time_t curr_time;
+  time(&curr_time);
+  struct tm * timeinfo;
+  timeinfo = localtime(&curr_time);
+  std::string Curr_time = asctime(timeinfo);
+  return Curr_time;
 }

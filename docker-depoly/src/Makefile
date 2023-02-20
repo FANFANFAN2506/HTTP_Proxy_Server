@@ -1,8 +1,8 @@
-TARGETS=parse
+TARGETS=request
 CFLAGS=-std=c++11 -pedantic -Wall -Werror -ggdb3
-OBJS = $(patsubst %,%.o,$(TARGETS)) parse.o
+OBJS = $(patsubst %,%.o,$(TARGETS)) request.o
 all: $(TARGETS)
-parse: parse.o
+parse: request.o
 	g++ $(CFLAGS) -g -o $@ $<
 %.o:%.cpp
 	g++ $(CFLAGS) -c $<
@@ -11,4 +11,4 @@ parse: parse.o
 clean:
 	rm -f *~ $(TARGETS) $(OBJS)
 
-parse.o:parse.hpp
+request.o:request.hpp
