@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #include "log.cpp"
-#include "server.h"
+#include "server.hpp"
 
 #define PORT 12345
 #define MAXPENDING 10
@@ -30,7 +30,7 @@ int main(void){
         }else{
             requestID++;
             pthread_t thread;
-            pthread_create(&thread, NULL, requestHandle, );
+            //pthread_create(&thread, NULL, proxy, );
         }
     }
 }
