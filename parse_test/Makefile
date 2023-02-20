@@ -11,3 +11,4 @@ parse: parse.o
 clean:
 	rm -f *~ $(TARGETS) $(OBJS)
 
+parse.o:parse.hpp
