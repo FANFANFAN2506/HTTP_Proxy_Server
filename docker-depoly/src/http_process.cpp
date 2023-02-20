@@ -15,6 +15,15 @@ void requestAccept() {
 void requestHandle(long uid, int sd, std::string l, std::string ip) {
   std::string Received_time = get_current_Time();
   http_Request * Request_instance = new http_Request(uid, sd, l, ip, Received_time);
+  if (Request_instance->return_method().c_str() == "CONNECT") {
+    //The request is CONNECT
+  }
+  else if (Request_instance->return_method().c_str() == "POST") {
+    //The request is POST
+  }
+  else {
+    //Thre request is GET
+  }
 }
 
 std::string recv_all(int client_fd) {

@@ -19,6 +19,7 @@ class http_Request {
   int socket;           //socket descriptor
   std::string Line;     //Whole contents of the request
   std::string REQUEST;  //Request line(first line)
+  std::string Header;   //For CONNECT method remove the request line
   std::string IPFROM;   //Request from IP
   std::string Method;
   std::string Host_name;  //Target server IP
@@ -32,6 +33,7 @@ class http_Request {
       socket(0),
       Line(),
       REQUEST(),
+      Header(),
       IPFROM(),
       Method(),
       Host_name(),
@@ -42,6 +44,7 @@ class http_Request {
       socket(sd),
       Line(l),
       REQUEST(),
+      Header(),
       IPFROM(ip),
       Method(),
       Host_name(),
@@ -55,6 +58,7 @@ class http_Request {
   int return_socket() const { return socket; }
   std::string return_Line() const { return Line; }
   std::string return_request() const { return REQUEST; }
+  std::string return_header() const { return Header; }
   std::string return_ip() const { return IPFROM; }
   std::string return_method() const { return Method; }
   std::string return_Host() const { return Host_name; }
@@ -115,6 +119,7 @@ class http_Request {
         throw std::invalid_argument("Wrong request line format");
       }
       REQUEST = Line.substr(0, request_line_end);
+      Header = Line.substr(request_line_end + 2);
     }
     catch (std::exception & e) {
       std::cout << e.what() << std::endl;
