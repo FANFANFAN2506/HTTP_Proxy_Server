@@ -11,6 +11,7 @@
 
 #include "log.cpp"
 #include "server.hpp"
+#include "proxy.hpp"
 
 #define PORT 12345
 #define MAXPENDING 10
@@ -25,12 +26,14 @@ int main(void){
 
     while(1){
         int connfd = accept(listenServer.sock,(struct sockaddr*)&clitAddr, &clitLen);
-        if(connfd == -1){
+        if(connfd < 0){
             log(std::string("NULL: Failed to estblish connection with client"));
         }else{
-            requestID++;
+            std::string ip = inet_ntoa(clitAddr.sin_addr);
             pthread_t thread;
-            //pthread_create(&thread, NULL, proxy, );
+            Proxy * myProxy = new Proxy(requestID, connfd, ip);
+            pthread_create(&thread, NULL, runProxy, myProxy);
+            requestID++;
         }
     }
 }
