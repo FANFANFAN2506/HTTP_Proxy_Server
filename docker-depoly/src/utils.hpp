@@ -38,9 +38,9 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
-std::string get_current_Time() {
-  time_t curr_time;
-  time(&curr_time);
+std::string parseTime(time_t curr_time) {
+  // time_t curr_time;
+  // time(&curr_time);
   struct tm * timeinfo;
   timeinfo = localtime(&curr_time);
   std::string Curr_time = asctime(timeinfo);

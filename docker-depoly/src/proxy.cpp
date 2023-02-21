@@ -4,14 +4,17 @@ void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   std::string Line = recvAll(Proxy_instance->socket_des);
   Proxy_instance->setRequest(Line);
+  return NULL;
 }
 
 //Proxy memeber functions:
 
 void Proxy::setRequest(std::string Line) {
   try {
-    std::string Received_time = get_current_Time();
-    request = new http_Request(this->socket_des, Line, this->clientIP, Received_time);
+    // std::string Received_time = get_current_Time();
+    time_t curr_time;
+    time(&curr_time);
+    request = new http_Request(this->socket_des, Line, this->clientIP, curr_time);
   }
   catch (std::exception & e) {
     std::cerr << "Request construction failed" << std::endl;
@@ -19,7 +22,9 @@ void Proxy::setRequest(std::string Line) {
 }
 
 void Proxy::judgeRequest() {
-  if (request->return_method().c_str() == "CONNECT") {
+  std::string connect = "CONNECT";
+  std::string post = "POST";
+  if (request->return_method() == connect) {
     /* If the method is CONNECT: 
     1. Setup the connection with target server
     2. The request line should be ignored, send the header & data to server
@@ -28,17 +33,21 @@ void Proxy::judgeRequest() {
     int socket_server = connectServer();
     const char * message_server = request->return_header().c_str();
     send(socket_server, &message_server, strlen(message_server), 0);
-    const char * message_client = "HTTP/1.1 200 OK\r\n";
+    std::stringstream sstream;
+    sstream << request->return_httpver() << " 200 OK\r\n";
+    const char * message_client = sstream.str().c_str();
     send(request->return_socket_des(), &message_client, strlen(message_client), 0);
     connectTunnel(socket_server);
     //Finish connect
     pthread_exit(NULL);
   }
-  else if (request->return_method().c_str() == "POST") {
+  else if (request->return_method() == post) {
     //The request is POST
+    return;
   }
   else {
     //Thre request is GET
+    return;
   }
 }
 

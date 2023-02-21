@@ -20,7 +20,7 @@ class http_Request {
   std::string http_ver;
   std::string Host_name;  //Target server IP
   std::string Host_port;  //Target server port
-  std::string TIME;
+  time_t TIME;
 
  public:
   //default constructor
@@ -36,7 +36,7 @@ class http_Request {
       Host_name(),
       Host_port(),
       TIME() {}
-  http_Request(int sd, std::string l, std::string ip, std::string t) :
+  http_Request(int sd, std::string l, std::string ip, time_t t) :
       socket_des(sd),
       Line(l),
       REQUEST(),
@@ -65,7 +65,7 @@ class http_Request {
   std::string return_httpver() const { return http_ver; }
   std::string return_Host() const { return Host_name; }
   std::string return_port() const { return Host_port; }
-  std::string return_time() const { return TIME; }
+  time_t return_time() const { return TIME; }
   void parseRequest() {
     httpparser::Request parsed_request;
     httpparser::HttpRequestParser parser;
