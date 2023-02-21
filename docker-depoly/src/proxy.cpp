@@ -31,6 +31,8 @@ void Proxy::judgeRequest() {
     const char * message_client = "HTTP/1.1 200 OK\r\n";
     send(request->return_socket_des(), &message_client, strlen(message_client), 0);
     connectTunnel(socket_server);
+    //Finish connect
+    pthread_exit(NULL);
   }
   else if (request->return_method().c_str() == "POST") {
     //The request is POST

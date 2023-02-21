@@ -7,9 +7,6 @@
 #include <iostream>
 #include <vector>
 
-int Proxy_Accept() {
-}
-
 std::string recvAll(int client_fd) {
   int data_rec = 0;
   int last_rec = 0;
