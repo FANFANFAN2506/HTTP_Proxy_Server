@@ -1,12 +1,14 @@
 #include <cassert>
 #include <exception>
+#include <sstream>
+#include <string>
 
 #include "utils.hpp"
 
 class http_Request {
  private:
-  long UID;                 //UID unique id for log
-  int socket;               //socket descriptor
+  // long UID;                 //UID unique id for log
+  int socket_des;           //socket_des descriptor
   std::string Line;         //Whole contents of the request
   std::string REQUEST;      //Request line(first line)
   std::string header_data;  //For CONNECT method remove the request line
@@ -19,8 +21,7 @@ class http_Request {
  public:
   //default constructor
   http_Request() :
-      UID(0),
-      socket(0),
+      socket_des(0),
       Line(),
       REQUEST(),
       header_data(),
@@ -29,9 +30,8 @@ class http_Request {
       Host_name(),
       Host_port(),
       TIME() {}
-  http_Request(long uid, int sd, std::string l, std::string ip, std::string t) :
-      UID(uid),
-      socket(sd),
+  http_Request(int sd, std::string l, std::string ip, std::string t) :
+      socket_des(sd),
       Line(l),
       REQUEST(),
       header_data(),
@@ -44,8 +44,8 @@ class http_Request {
     getMethod();
     getRequestLine();
   }
-  long return_UID() const { return UID; }
-  int return_socket() const { return socket; }
+  // long return_UID() const { return UID; }
+  int return_socket_des() const { return socket_des; }
   std::string return_Line() const { return Line; }
   std::string return_request() const { return REQUEST; }
   std::string return_header() const { return header_data; }
@@ -68,7 +68,11 @@ class http_Request {
       }
     }
     catch (std::exception & e) {
-      std::cout << "Error" << e.what() << std::endl;
+      std::stringstream sstream;
+      sstream << "Bad request" << e.what() << std::endl;
+      std::cout << "The proxy cannot understand" << e.what() << std::endl;
+      const char * message = sstream.str().c_str();
+      send(socket_des, &message, strlen(message), 0);
       return;
     }
   }
@@ -98,7 +102,11 @@ class http_Request {
       }
     }
     catch (std::exception & e) {
-      std::cout << "Error: " << e.what() << std::endl;
+      std::stringstream sstream;
+      sstream << "Bad request" << e.what() << std::endl;
+      std::cout << "The proxy cannot understand" << e.what() << std::endl;
+      const char * message = sstream.str().c_str();
+      send(socket_des, &message, strlen(message), 0);
       return;
     }
   }
@@ -112,7 +120,11 @@ class http_Request {
       header_data = Line.substr(request_line_end + 2);
     }
     catch (std::exception & e) {
-      std::cout << e.what() << std::endl;
+      std::stringstream sstream;
+      sstream << "Bad request" << e.what() << std::endl;
+      std::cout << "The proxy cannot understand" << e.what() << std::endl;
+      const char * message = sstream.str().c_str();
+      send(socket_des, &message, strlen(message), 0);
       return;
     }
   }

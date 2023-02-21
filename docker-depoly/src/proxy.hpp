@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -11,20 +12,30 @@
 #include <iostream>
 
 #include "request.hpp"
+#include "response.hpp"
 class Proxy {
  public:
   long uid;
-  int socket;
+  int socket_des;
   std::string clientIP;
-  // Request * request;
-  // Response * response;
+  http_Request * request;
+  http_Response * response;
 
  public:
-  Proxy(long uid, int socket, std::string clientIP) {
-    this->uid = uid;
-    this->socket = socket;
-    this->clientIP = clientIP;
-  }
+  //Constructor
+  Proxy() : uid(0), socket_des(0), clientIP(), request(NULL), response(NULL) {}
+  Proxy(long id, int sd, std::string ip) :
+      uid(id), socket_des(sd), clientIP(ip), request(NULL), response(NULL) {}
+  //Get the private field
+  long return_UID() const { return uid; }
+  int return_socket_des() const { return socket_des; }
+  http_Request * return_request() const { return request; }
+  http_Response * return_response() const { return response; }
+  //Initialize Request
+  void setRequest(std::string Line);
+  int connectServer();
+  void judgeRequest();
+  void connectTunnel(int socket_server);
   //If we have destructor, we may need to follow rule of 5 as it is c++11
   //   ~Proxy() {}
 };
