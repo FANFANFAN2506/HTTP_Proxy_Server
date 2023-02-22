@@ -45,6 +45,7 @@ std::string receiveAll(int client_fd){
   memset(buffer,0,100);
   while(recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT) > 0){
     ans.append(buffer);
+    memset(buffer,0,100);
   }
   return ans;
 }
