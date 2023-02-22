@@ -1,14 +1,14 @@
-TARGETS=request
-CFLAGS=-std=c++11 -pedantic -Wall -Werror -ggdb3
-OBJS = $(patsubst %,%.o,$(TARGETS)) response.o request.o
+TARGETS=main
+CFLAGS=-std=c++11 -pedantic -Wall -Werror -ggdb3 -pthread -lpthread
+OBJS = $(patsubst %,%.o,$(TARGETS)) proxy.o 
 all: $(TARGETS)
-request:request.o response.o
-	g++ $(CFLAGS) -g -o $@ $<
-%.o:%.cpp
-	g++ $(CFLAGS) -c $<
+main: main.o proxy.o
+	g++ -g $(CFLAGS)  -o $@ $<
+main.o:main.cpp
+	g++ $(CFLAGS) -c $^
+proxy.o:proxy.cpp
+	g++ $(CFLAGS) -c $^
 
 .PHONY:clean
 clean:
-	rm -f *~ $(TARGETS) $(OBJS)
-
-response.o:response.hpp
+	rm -f *.gch *~ $(TARGETS) $(OBJS)
