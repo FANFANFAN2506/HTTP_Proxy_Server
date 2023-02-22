@@ -43,14 +43,17 @@ void Proxy::judgeRequest() {
     pthread_exit(NULL);
   }
   else if (request->return_method() == "POST") {
-    //The request is POST
-    //Receive the request, send to server
-    //Receive the response, send to client
+    /*Receive the request, send to server
+    Receive the response, send to client
+    */
     int socket_server = connectServer();
     int socket_client = socket_des;
     const char * message_server = request->return_Line().c_str();
     send(socket_server, &message_server, strlen(message_server), 0);
     std::string input = recvAll(socket_server);
+    if (input.size() == 0) {
+      return;
+    }
     const char * reply = input.c_str();
     send(socket_client, &reply, strlen(reply), 0);
     close(socket_client);

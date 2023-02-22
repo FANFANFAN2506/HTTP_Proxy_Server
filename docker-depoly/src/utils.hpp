@@ -20,6 +20,7 @@ std::string recvAll(int client_fd) {
     data_buff.resize(start + increment);
     data_rec = recv(client_fd, &data_buff.data()[start], increment, 0);
     if (data_rec == 0) {
+      std::cerr << "The connection is closed" << std::endl;
       return "";
     }
     std::cout << "data received has a size of " << data_buff.size() << std::endl;
