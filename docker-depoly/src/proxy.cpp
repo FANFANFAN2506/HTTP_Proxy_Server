@@ -1,5 +1,4 @@
 #include "proxy.hpp"
-
 #include "utils.hpp"
 
 void * runProxy(void * myProxy) {

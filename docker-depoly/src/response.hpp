@@ -22,7 +22,7 @@ class http_Response {
   time_t EXPIRES;
 
  public:
-  http_Response() :
+  http_Response():
       socket_server(0),
       Line(),
       http_ver(),
@@ -30,7 +30,7 @@ class http_Response {
       status(),
       cache_ctrl(),
       EXPIRES() {}
-  http_Response(int sd, std::string l) :
+  http_Response(int sd, std::string l):
       socket_server(sd),
       Line(l),
       http_ver(),
@@ -55,6 +55,7 @@ class http_Response {
     sstream << http_ver << " " << statusCode << " " << status << "\r\n";
     return sstream.str();
   }
+  
   void parseResponse() {
     httpparser::Response parsed_response;
     httpparser::HttpResponseParser parser;
@@ -77,6 +78,7 @@ class http_Response {
       return;
     }
   }
+
   void get_cache_expire(httpparser::Response & parsed_response) {
     std::vector<httpparser::Response::HeaderItem>::const_iterator it;
     for (it = parsed_response.headers.begin(); it != parsed_response.headers.end();

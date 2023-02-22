@@ -8,11 +8,12 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <iostream>
 
 #include "request.hpp"
 #include "response.hpp"
+#include "cache.hpp"
+
 class Proxy {
  public:
   long uid;
@@ -20,12 +21,13 @@ class Proxy {
   std::string clientIP;
   http_Request * request;
   http_Response * response;
+  Cache * cache;
 
  public:
   //Constructor
   Proxy() : uid(0), socket_des(0), clientIP(), request(NULL) /*, response(NULL)*/ {}
-  Proxy(long id, int sd, std::string ip) :
-      uid(id), socket_des(sd), clientIP(ip), request(NULL) /*,response(NULL)*/ {}
+  Proxy(long id, int sd, std::string ip, Cache * cache) :
+      uid(id), socket_des(sd), clientIP(ip), cache(cache), request(NULL) /*,response(NULL)*/ {}
   //Get the private field
   long return_UID() const { return uid; }
   int return_socket_des() const { return socket_des; }

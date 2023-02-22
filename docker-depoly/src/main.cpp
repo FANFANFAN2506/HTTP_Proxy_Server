@@ -12,9 +12,11 @@
 
 #include "log.cpp"
 #include "proxy.hpp"
+#include "cache.hpp"
 
 #define PORT "12345"
 #define MAXPENDING 10
+#define MAXCachingCapacity 100
 long requestID = 0;
 
 using namespace std;
@@ -70,15 +72,16 @@ int main(int argc, char *argv[])
   struct sockaddr_in socket_addr;
   socklen_t socket_addr_len = sizeof(socket_addr);
   int client_connection_fd;
+  Cache * cache = new Cache(MAXCachingCapacity);
   while(1){
     client_connection_fd = accept(socket_fd, (struct sockaddr *)&socket_addr, &socket_addr_len);
     if (client_connection_fd == -1) {
-      log(string("NULL: Failed to estblish connection with client"));
+      log("NULL: Failed to estblish connection with client");
     }else{
       string ip = inet_ntoa(socket_addr.sin_addr);
       pthread_t thread;
-      //THis pointer may need to be considered for RAII
-      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip);
+      //This pointer may need to be considered for RAII
+      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, cache);
       pthread_create(&thread, NULL, runProxy, myProxy);
       requestID++;
     }

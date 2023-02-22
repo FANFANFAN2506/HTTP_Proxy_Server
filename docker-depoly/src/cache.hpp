@@ -3,11 +3,14 @@
 #include <list>
 #include "response.hpp"
 using namespace std;
+
 class Cache {
 private:
     int capacity;
     list<pair<string, http_Response *> > cache;
     unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
+
+    //mutex
 public:
     Cache(int capacity) {
         capacity = capacity;

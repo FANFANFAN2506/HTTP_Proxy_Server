@@ -6,11 +6,11 @@
 
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 
-void log(std::string msg){
+void log(const char * msg){
     pthread_mutex_lock(&logLock);
     std::ofstream logfile;
     logfile.open("/var/log/erss/log.txt");
-    logfile << msg.c_str() << std::endl;
+    logfile << msg << std::endl;
     logfile.close();
     pthread_mutex_unlock(&logLock);
 }
