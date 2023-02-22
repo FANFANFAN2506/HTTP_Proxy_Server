@@ -22,9 +22,9 @@ void Proxy::setRequest(std::string Line) {
 }
 
 void Proxy::judgeRequest() {
-  std::string connect = "CONNECT";
-  std::string post = "POST";
-  if (request->return_method() == connect) {
+  // std::string connect = "CONNECT";
+  // std::string post = "POST";
+  if (request->return_method() == "CONNECT") {
     /* If the method is CONNECT: 
     1. Setup the connection with target server
     2. The request line should be ignored, send the header & data to server
@@ -41,7 +41,7 @@ void Proxy::judgeRequest() {
     //Finish connect
     pthread_exit(NULL);
   }
-  else if (request->return_method() == post) {
+  else if (request->return_method() == "POST") {
     //The request is POST
     return;
   }

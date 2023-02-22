@@ -1,11 +1,18 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+
 #include <cassert>
+#include <ctime>
 #include <exception>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "httpparser/httprequestparser.h"
 #include "httpparser/request.h"
-#include "utils.hpp"
 
 class http_Request {
  private:
@@ -70,9 +77,6 @@ class http_Request {
     httpparser::Request parsed_request;
     httpparser::HttpRequestParser parser;
     const char * line = this->Line.c_str();
-    // const char * line = "GET /uri.cgi HTTP/1.1\r\nUser-Agent: Mozilla/5.0\r\nAccept: "
-    //                     "text/html,application/xhtml+xml,application/xml;q=0.9,*/"
-    //                     "*;q=0.8\r\nHost: 127.0.0.1\r\n\r\n";
     httpparser::HttpRequestParser::ParseResult parsed_result =
         parser.parse(parsed_request, line, line + strlen(line));
     if (parsed_result == httpparser::HttpRequestParser::ParsingCompleted) {
@@ -106,7 +110,7 @@ class http_Request {
     }
     catch (std::exception & e) {
       std::stringstream sstream;
-      sstream << "Bad request" << e.what() << std::endl;
+      sstream << "Bad request" << e.what() << "\n";
       std::cout << "The proxy cannot understand" << e.what() << std::endl;
       const char * message = sstream.str().c_str();
       send(socket_des, &message, strlen(message), 0);
@@ -138,7 +142,7 @@ class http_Request {
     }
     catch (std::exception & e) {
       std::stringstream sstream;
-      sstream << "Bad request" << e.what() << std::endl;
+      sstream << "Bad request" << e.what() << "\n";
       std::cout << "The proxy cannot understand" << e.what() << std::endl;
       const char * message = sstream.str().c_str();
       send(socket_des, &message, strlen(message), 0);
@@ -156,7 +160,7 @@ class http_Request {
     }
     catch (std::exception & e) {
       std::stringstream sstream;
-      sstream << "Bad request" << e.what() << std::endl;
+      sstream << "Bad request" << e.what() << "\n";
       std::cout << "The proxy cannot understand" << e.what() << std::endl;
       const char * message = sstream.str().c_str();
       send(socket_des, &message, strlen(message), 0);
