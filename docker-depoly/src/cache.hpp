@@ -47,3 +47,6 @@ public:
         map[url] = cache.begin();
     }
 };
+
+//Cache Update问题
+//Cache初始化
