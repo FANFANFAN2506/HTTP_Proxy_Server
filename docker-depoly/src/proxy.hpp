@@ -12,14 +12,14 @@
 #include <iostream>
 
 #include "request.hpp"
-// #include "response.hpp"
+#include "response.hpp"
 class Proxy {
  public:
   long uid;
   int socket_des;
   std::string clientIP;
   http_Request * request;
-  // http_Response * response;
+  http_Response * response;
 
  public:
   //Constructor
@@ -30,14 +30,13 @@ class Proxy {
   long return_UID() const { return uid; }
   int return_socket_des() const { return socket_des; }
   http_Request * return_request() const { return request; }
-  // http_Response * return_response() const { return response; }
+  http_Response * return_response() const { return response; }
   //Initialize Request
   void setRequest(std::string Line);
   int connectServer();
   void judgeRequest();
   void connectTunnel(int socket_server);
-  //If we have destructor, we may need to follow rule of 5 as it is c++11
-  //   ~Proxy() {}
+  ~Proxy() {}
 };
 
 void * runProxy(void * myProxy);

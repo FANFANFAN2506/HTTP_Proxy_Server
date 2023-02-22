@@ -1,9 +1,12 @@
 #include "proxy.hpp"
 
+#include "utils.hpp"
+
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   std::string Line = recvAll(Proxy_instance->socket_des);
   Proxy_instance->setRequest(Line);
+  Proxy_instance->judgeRequest();
   return NULL;
 }
 
@@ -22,8 +25,6 @@ void Proxy::setRequest(std::string Line) {
 }
 
 void Proxy::judgeRequest() {
-  // std::string connect = "CONNECT";
-  // std::string post = "POST";
   if (request->return_method() == "CONNECT") {
     /* If the method is CONNECT: 
     1. Setup the connection with target server
@@ -43,6 +44,17 @@ void Proxy::judgeRequest() {
   }
   else if (request->return_method() == "POST") {
     //The request is POST
+    //Receive the request, send to server
+    //Receive the response, send to client
+    int socket_server = connectServer();
+    int socket_client = socket_des;
+    const char * message_server = request->return_Line().c_str();
+    send(socket_server, &message_server, strlen(message_server), 0);
+    std::string input = recvAll(socket_server);
+    const char * reply = input.c_str();
+    send(socket_client, &reply, strlen(reply), 0);
+    close(socket_client);
+    close(socket_server);
     return;
   }
   else {
