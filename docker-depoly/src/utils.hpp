@@ -39,6 +39,16 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
+std::string receiveAll(int client_fd){
+  char buffer[100];
+  std::string ans;
+  memset(buffer,0,100);
+  while(recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT) > 0){
+    ans.append(buffer);
+  }
+  return ans;
+}
+
 std::string parseTime(time_t curr_time) {
   // time_t curr_time;
   // time(&curr_time);
