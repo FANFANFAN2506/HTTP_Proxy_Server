@@ -12,7 +12,6 @@
 
 #include "log.cpp"
 #include "proxy.hpp"
-#include "cache.hpp"
 
 #define PORT "12345"
 #define MAXPENDING 10

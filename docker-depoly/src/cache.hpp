@@ -2,17 +2,17 @@
 #include <unordered_map>
 #include <list>
 #include "response.hpp"
-using namespace std;
 
+using namespace std;
 class Cache {
 private:
-    int capacity;
+    size_t capacity;
     list<pair<string, http_Response *> > cache;
     unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
 
     //mutex
 public:
-    Cache(int capacity) {
+    Cache(size_t capacity) {
         capacity = capacity;
     }
     
