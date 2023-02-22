@@ -26,6 +26,7 @@ void Proxy::setRequest(std::string Line) {
 
 void Proxy::judgeRequest() {
   if (request->return_method() == "CONNECT") {
+    std::cout << "connect" << std::endl;
     /* If the method is CONNECT: 
     1. Setup the connection with target server
     2. The request line should be ignored, send the header & data to server
@@ -34,10 +35,12 @@ void Proxy::judgeRequest() {
     int socket_server = connectServer();
     const char * message_server = request->return_header().c_str();
     send(socket_server, &message_server, strlen(message_server), 0);
+    std::cout << "send to server" << std::endl;
     std::stringstream sstream;
     sstream << request->return_httpver() << " 200 OK\r\n";
     const char * message_client = sstream.str().c_str();
     send(request->return_socket_des(), &message_client, strlen(message_client), 0);
+    std::cout << "send back" << std::endl;
     connectTunnel(socket_server);
     //Finish connect
     pthread_exit(NULL);
