@@ -47,6 +47,7 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
+<<<<<<< HEAD
 std::string receiveAll(int client_fd) {
   char buffer[100];
   std::string ans;
@@ -56,7 +57,20 @@ std::string receiveAll(int client_fd) {
     std::cout << "buffer" << buffer << std::endl;
     ans.append(buffer);
     memset(buffer, 0, 100);
+=======
+std::string receiveAll(int client_fd){
+  char buffer[10];
+  std::string ans;
+  memset(buffer,0,10);
+  //std::cout<< recv(client_fd, buffer, sizeof(buffer), 0) <<std::endl;
+  while(recv(client_fd, buffer, sizeof(buffer), MSG_WAITALL) > 0){
+    string tmp = buffer;
+    ans.append(tmp);
+    // std::cout << buffer << std::endl;
+    memset(buffer,0,sizeof(buffer));
+>>>>>>> d79965312013ffca60e622d25c6939d8668032f2
   }
+  std::cout << ans << std::endl;
   return ans;
 }
 
