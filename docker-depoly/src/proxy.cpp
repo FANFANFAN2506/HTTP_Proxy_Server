@@ -4,7 +4,7 @@
 #include<unistd.h>
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
-  std::string Line = recvAll(Proxy_instance->socket_des);
+  std::string Line = receiveAll(Proxy_instance->socket_des);
   // std::string Line = receiveAll(Proxy_instance->socket_des);
   Proxy_instance->setRequest(Line);
   Proxy_instance->judgeRequest();
