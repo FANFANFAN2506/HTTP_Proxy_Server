@@ -42,6 +42,7 @@ class Proxy {
   int connectServer();
   void judgeRequest();
   void connectTunnel(int socket_server);
+  void handleConnect(int server_fd);
   ~Proxy() {}
 };
 

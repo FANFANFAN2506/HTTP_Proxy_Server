@@ -1,11 +1,18 @@
 #include "proxy.hpp"
 
 #include "utils.hpp"
-
+#include<unistd.h>
 void * runProxy(void * myProxy) {
+<<<<<<< Updated upstream
   Proxy * Proxy_instance = (Proxy *)myProxy;
   std::string Line = recvAll(Proxy_instance->socket_des);
   // std::string Line = receiveAll(Proxy_instance->socket_des);
+=======
+  Proxy * Proxy_instance = (Proxy *) myProxy;
+  std::cout << "-----"<<Proxy_instance->return_socket_des() << std::endl;
+  //std::string Line = recvAll(Proxy_instance->socket_des);
+  std::string Line = recvAll(Proxy_instance->socket_des);
+>>>>>>> Stashed changes
   Proxy_instance->setRequest(Line);
   Proxy_instance->judgeRequest();
   return NULL;
@@ -37,12 +44,19 @@ void Proxy::judgeRequest() {
     3. Reply a HTTP 200 OK 
     */
     int socket_server = connectServer();
+<<<<<<< Updated upstream
     // std::stringstream sstream;
     // sstream << request->return_httpver() << " 200 OK\r\n\r\n";
     // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
     // std::cout << sstream.str().c_str() << std::endl;
     // error = send(socket_server, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
     // error = send(socket_client, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
+=======
+    //usleep(100);
+    // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
+    int client_fd = this->return_socket_des();
+    send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
+>>>>>>> Stashed changes
     connectTunnel(socket_server);
     //Finish connect
     return;
@@ -104,6 +118,9 @@ int Proxy::connectServer() {
 }
 
 void Proxy::connectTunnel(int socket_server) {
+  // int client_fd = this->return_socket_des();
+  // send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
+  usleep(10);
   fd_set listen_ports;
   int socket_client = this->return_socket_des();
   int error;
@@ -167,4 +184,35 @@ void Proxy::connectTunnel(int socket_server) {
     }      //End of go over the potential descriptor
   }        //main while loop
   return;  //End of func
+}
+
+void Proxy::handleConnect(int server_fd) {
+  int client_fd = this->return_socket_des();
+  // send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
+  fd_set readfds;
+  int nfds = server_fd > client_fd ? server_fd + 1 : client_fd + 1;
+
+  while (1) {
+    FD_ZERO(&readfds);
+    FD_SET(server_fd, &readfds);
+    FD_SET(client_fd, &readfds);
+
+    select(nfds, &readfds, NULL, NULL, NULL);
+    int fd[2] = {server_fd, client_fd};
+    int len;
+    for (int i = 0; i < 2; i++) {
+      char message[65536] = {0};
+      if (FD_ISSET(fd[i], &readfds)) {
+        len = recv(fd[i], message, sizeof(message), 0);
+        if (len <= 0) {
+          return;
+        }
+        else {
+          if (send(fd[1 - i], message, len, 0) <= 0) {
+            return;
+          }
+        }
+      }
+    }
+  }
 }

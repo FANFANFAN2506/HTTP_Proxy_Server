@@ -39,15 +39,17 @@ std::string receiveAll(int client_fd) {
     memset(buffer, 0, sizeof(buffer));
 =======
 std::string receiveAll(int client_fd){
-  char buffer[128];
+  char buffer[1024];
   std::string ans;
-  memset(buffer,0,128);
-  while(recv(client_fd, buffer, sizeof(buffer), MSG_WAITALL) > 0){
+  memset(buffer,0,1024);
+  while(recv(client_fd, buffer, sizeof(buffer), 0) > 0){
     string tmp = buffer;
     ans.append(tmp);
+    //std::cout << tmp << std::endl;
     memset(buffer,0,sizeof(buffer));
 >>>>>>> 2ed3719d1d8e6493c253b52c3fab866f101b8f65
   }
+  std::cout << "!!!!!!!!!!!!!" << std::endl;
   std::cout << ans << std::endl;
   return ans;
 }

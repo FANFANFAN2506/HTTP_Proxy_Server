@@ -89,6 +89,7 @@ int main(int argc, char * argv[]) {
       //This pointer may need to be considered for RAII
       Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, cache);
       pthread_create(&thread, NULL, runProxy, myProxy);
+      //pthread_join(thread,NULL);
       requestID++;
     }
   }
