@@ -16,17 +16,24 @@ char * to_char(std::string s) {
 
 std::vector<char> recvChar(int client_fd) {
   int data_rec;
-  int increment = 65536;
+  // int increment = 65536;
+  int total = 0;
+  int increment = 4096;
   int start = 0;
   std::vector<char> data_buff(increment, 0);
-  data_rec = recv(client_fd, &data_buff.data()[start], increment, 0);
-  // std::cout << "receive from " << client_fd << std::endl;
-  if (data_rec == 0) {
-    std::cerr << "The connection is closed" << std::endl;
-    std::vector<char> fail;
-    return fail;
+  while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
+    //There is data received
+    total += data_rec;
+    // std::cout << "size is " << data_rec << std::endl;
+    if (data_rec < increment) {
+      //connection close
+      break;
+    }
+    //need to do another recv
+    data_buff.resize(data_buff.size() + increment);
+    start += data_rec;
   }
-  data_buff.resize(data_rec);
+  data_buff.resize(total);
   return data_buff;
 }
 
@@ -48,7 +55,7 @@ std::string receiveAll(int client_fd) {
   memset(buffer, 0, 10);
   int i = 0;
   while ((i = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) {
-    string tmp = buffer;
+    std::string tmp = buffer;
     ans.append(tmp);
     memset(buffer, 0, sizeof(buffer));
     if (i < 10) {
