@@ -3,16 +3,9 @@
 #include "utils.hpp"
 #include<unistd.h>
 void * runProxy(void * myProxy) {
-<<<<<<< Updated upstream
   Proxy * Proxy_instance = (Proxy *)myProxy;
   std::string Line = recvAll(Proxy_instance->socket_des);
   // std::string Line = receiveAll(Proxy_instance->socket_des);
-=======
-  Proxy * Proxy_instance = (Proxy *) myProxy;
-  std::cout << "-----"<<Proxy_instance->return_socket_des() << std::endl;
-  //std::string Line = recvAll(Proxy_instance->socket_des);
-  std::string Line = recvAll(Proxy_instance->socket_des);
->>>>>>> Stashed changes
   Proxy_instance->setRequest(Line);
   Proxy_instance->judgeRequest();
   return NULL;
@@ -44,19 +37,12 @@ void Proxy::judgeRequest() {
     3. Reply a HTTP 200 OK 
     */
     int socket_server = connectServer();
-<<<<<<< Updated upstream
     // std::stringstream sstream;
     // sstream << request->return_httpver() << " 200 OK\r\n\r\n";
     // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
     // std::cout << sstream.str().c_str() << std::endl;
     // error = send(socket_server, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
     // error = send(socket_client, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
-=======
-    //usleep(100);
-    // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
-    int client_fd = this->return_socket_des();
-    send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
->>>>>>> Stashed changes
     connectTunnel(socket_server);
     //Finish connect
     return;
