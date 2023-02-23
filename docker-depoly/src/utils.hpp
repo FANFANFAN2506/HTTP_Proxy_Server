@@ -7,18 +7,34 @@
 #include <iostream>
 #include <vector>
 
-std::string recvAll(int client_fd) {
+char * to_char(std::string s) {
+  char * cstr;
+  cstr = new char[s.size() + 1];
+  strcpy(cstr, s.c_str());
+  return cstr;
+}
+
+std::vector<char> recvChar(int client_fd) {
   int data_rec;
   int increment = 65536;
   int start = 0;
   std::vector<char> data_buff(increment, 0);
   data_rec = recv(client_fd, &data_buff.data()[start], increment, 0);
-  std::cout << "receive from " << client_fd << std::endl;
+  // std::cout << "receive from " << client_fd << std::endl;
   if (data_rec == 0) {
     std::cerr << "The connection is closed" << std::endl;
-    return "";
+    std::vector<char> fail;
+    return fail;
   }
   data_buff.resize(data_rec);
+  return data_buff;
+}
+
+std::string recvAll(int client_fd) {
+  std::vector<char> data_buff = recvChar(client_fd);
+  if (data_buff.size() == 0) {
+    return "";
+  }
   std::string request;
   for (size_t i = 0; i < data_buff.size(); i++) {
     request += data_buff[i];
@@ -26,18 +42,19 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
-std::string receiveAll(int client_fd){
-  char buffer[1024];
+std::string receiveAll(int client_fd) {
+  char buffer[10];
   std::string ans;
-  memset(buffer,0,1024);
-  while(recv(client_fd, buffer, sizeof(buffer), 0) > 0){
+  memset(buffer, 0, 10);
+  int i = 0;
+  while ((i = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) {
     string tmp = buffer;
     ans.append(tmp);
-    //std::cout << tmp << std::endl;
-    memset(buffer,0,sizeof(buffer));
+    memset(buffer, 0, sizeof(buffer));
+    if (i < 10) {
+      break;
+    }
   }
-  std::cout << "!!!!!!!!!!!!!" << std::endl;
-  std::cout << ans << std::endl;
   return ans;
 }
 

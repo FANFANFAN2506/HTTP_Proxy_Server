@@ -1,7 +1,8 @@
 #include "proxy.hpp"
 
+#include <unistd.h>
+
 #include "utils.hpp"
-#include<unistd.h>
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   std::string Line = recvAll(Proxy_instance->socket_des);
@@ -20,7 +21,6 @@ void Proxy::setRequest(std::string Line) {
     time(&curr_time);
     request = new http_Request(this->socket_des, Line, this->clientIP, curr_time);
     request->constructRequest();
-    std::cout << "request has the line: " << request->return_Line() << std::endl;
   }
   catch (std::exception & e) {
     delete request;
@@ -37,12 +37,6 @@ void Proxy::judgeRequest() {
     3. Reply a HTTP 200 OK 
     */
     int socket_server = connectServer();
-    // std::stringstream sstream;
-    // sstream << request->return_httpver() << " 200 OK\r\n\r\n";
-    // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
-    // std::cout << sstream.str().c_str() << std::endl;
-    // error = send(socket_server, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
-    // error = send(socket_client, sstream.str().c_str(), strlen(sstream.str().c_str()), 0);
     connectTunnel(socket_server);
     //Finish connect
     return;
@@ -75,9 +69,6 @@ void Proxy::judgeRequest() {
 int Proxy::connectServer() {
   int error;
   int socket_server;
-  // std::cout << "Request target server ip: " << request->return_Host().c_str()
-  //           << std::endl;
-  // std::cout << "target port: " << request->return_port().c_str() << std::endl;
   struct addrinfo hints, *res;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
@@ -104,9 +95,6 @@ int Proxy::connectServer() {
 }
 
 void Proxy::connectTunnel(int socket_server) {
-  // int client_fd = this->return_socket_des();
-  // send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
-  usleep(10);
   fd_set listen_ports;
   int socket_client = this->return_socket_des();
   int error;
@@ -129,10 +117,7 @@ void Proxy::connectTunnel(int socket_server) {
     FD_SET(socket_client, &listen_ports);
     FD_SET(socket_server, &listen_ports);
     // temp_list = listen_ports;
-    std::cout << "start select listen on socket:" << request->return_socket_des()
-              << std::endl;
     error = select(maxdes + 1, &listen_ports, NULL, NULL, NULL);
-    std::cout << "finish select" << std::endl;
     if (error == -1) {
       std::cerr << "Error cannot select" << std::endl;
       pthread_exit(NULL);
@@ -140,29 +125,26 @@ void Proxy::connectTunnel(int socket_server) {
     for (int i = 0; i <= maxdes; i++) {
       if (FD_ISSET(i, &listen_ports)) {
         //There is a message received
-        int data_rec;
-        int increment = 65536;
-        int start = 0;
-        std::vector<char> data_buff(increment, 0);
-        data_rec = recv(i, &data_buff.data()[start], increment, 0);
-        data_buff.resize(data_rec);
-        // std::string input = recvAll(i);
+        std::vector<char> data_buff = recvChar(i);
+        // std::string data_buff = recvAll(i);
         if (data_buff.size() == 0) {
           //One of the socket closed on there side
-          // close(socket_server);
-          // close(socket_client);
-          // FD_ZERO(&listen_ports);
-          // end = 0;
-          return;
+          close(socket_server);
+          close(socket_client);
+          FD_ZERO(&listen_ports);
+          end = 0;
         }
         else {
-          std::cout << "There is message received" << std::endl;
+          // char * message = to_char(data_buff);
+          // std::cout << "There is message received" << std::endl;
           if (i == socket_server) {
             //The message is from server
+            // send(socket_client, data_buff.c_str(), strlen(data_buff.c_str()), 0);
             send(socket_client, &data_buff.data()[0], data_buff.size(), 0);
           }
           else {
             //The message is from client
+            // send(socket_server, data_buff.c_str(), strlen(data_buff.c_str()), 0);
             send(socket_server, &data_buff.data()[0], data_buff.size(), 0);
           }
         }  //End of if for recv 0
@@ -170,35 +152,4 @@ void Proxy::connectTunnel(int socket_server) {
     }      //End of go over the potential descriptor
   }        //main while loop
   return;  //End of func
-}
-
-void Proxy::handleConnect(int server_fd) {
-  int client_fd = this->return_socket_des();
-  // send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
-  fd_set readfds;
-  int nfds = server_fd > client_fd ? server_fd + 1 : client_fd + 1;
-
-  while (1) {
-    FD_ZERO(&readfds);
-    FD_SET(server_fd, &readfds);
-    FD_SET(client_fd, &readfds);
-
-    select(nfds, &readfds, NULL, NULL, NULL);
-    int fd[2] = {server_fd, client_fd};
-    int len;
-    for (int i = 0; i < 2; i++) {
-      char message[65536] = {0};
-      if (FD_ISSET(fd[i], &readfds)) {
-        len = recv(fd[i], message, sizeof(message), 0);
-        if (len <= 0) {
-          return;
-        }
-        else {
-          if (send(fd[1 - i], message, len, 0) <= 0) {
-            return;
-          }
-        }
-      }
-    }
-  }
 }
