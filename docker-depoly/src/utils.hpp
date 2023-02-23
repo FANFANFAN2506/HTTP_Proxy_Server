@@ -40,13 +40,17 @@ std::string recvAll(int client_fd) {
 }
 
 std::string receiveAll(int client_fd){
-  char buffer[100];
+  char buffer[10];
   std::string ans;
-  memset(buffer,0,100);
-  while(recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT) > 0){
-    ans.append(buffer);
-    memset(buffer,0,100);
+  memset(buffer,0,10);
+  //std::cout<< recv(client_fd, buffer, sizeof(buffer), 0) <<std::endl;
+  while(recv(client_fd, buffer, sizeof(buffer), MSG_WAITALL) > 0){
+    string tmp = buffer;
+    ans.append(tmp);
+    // std::cout << buffer << std::endl;
+    memset(buffer,0,sizeof(buffer));
   }
+  std::cout << ans << std::endl;
   return ans;
 }
 
