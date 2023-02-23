@@ -56,10 +56,6 @@ class http_Request {
       Host_port(),
       TIME(t) {
     //Get uri and method
-    parseRequest();
-    getHost();
-    //getMethod();
-    getRequestLine();
   }
   // long return_UID() const { return UID; }
   int return_socket_des() const { return socket_des; }
@@ -73,6 +69,11 @@ class http_Request {
   std::string return_Host() const { return Host_name; }
   std::string return_port() const { return Host_port; }
   time_t return_time() const { return TIME; }
+  void constructRequest() {
+    parseRequest();
+    // getHost();
+    getRequestLine();
+  }
   void parseRequest() {
     httpparser::Request parsed_request;
     httpparser::HttpRequestParser parser;
@@ -87,34 +88,34 @@ class http_Request {
       sstream << "HTTP/" << parsed_request.versionMajor << "."
               << parsed_request.versionMinor;
       http_ver = sstream.str();
+      getHostIp(parsed_request);
       return;
     }
     else {
       std::stringstream sstream;
-      std::cout << "The proxy cannot understand" << std::endl;
+      std::cout << "The parser failed" << std::endl;
       return;
     }
   }
-  void getMethod() {
-    try {
-      size_t start_line = Line.find_first_of(" ");
-      Method = Line.substr(0, start_line);
-      std::string get = "GET";
-      std::string post = "POST";
-      std::string connect = "CONNECT";
-      if (Method != get && Method != connect && Method != post) {
-        assert(Method.c_str() != get);
-        std::cout << "Illegal method is " << Method.c_str() << std::endl;
-        throw std::invalid_argument("Only support GET POST CONNECT methods");
+  void getHostIp(httpparser::Request & parsed_request) {
+    std::vector<httpparser::Request::HeaderItem>::const_iterator it;
+    for (it = parsed_request.headers.begin(); it != parsed_request.headers.end(); ++it) {
+      if (it->name == "Host") {
+        std::string host_line = it->value;
+        size_t port_start = host_line.find_first_of(":\r");
+        //if we allowed it to declare port
+        //maybe the we could hard code as 80
+        if (port_start != std::string::npos) {
+          //the port is declared
+          Host_name = host_line.substr(0, port_start);
+          Host_port = host_line.substr(port_start + 1);
+        }
+        else {
+          //not declared port; default 80 port for HTTP/TCP
+          Host_name = host_line;
+          Host_port = "80";
+        }
       }
-    }
-    catch (std::exception & e) {
-      std::stringstream sstream;
-      sstream << "Bad request" << e.what() << "\n";
-      std::cout << "The proxy cannot understand" << e.what() << std::endl;
-      const char * message = sstream.str().c_str();
-      send(socket_des, &message, strlen(message), 0);
-      return;
     }
   }
   void getHost() {
@@ -126,7 +127,7 @@ class http_Request {
         throw std::invalid_argument("Cannot find the host name");
       }
       std::string Host = host_name.substr(0, host_end);
-      size_t port_start = Host.find_first_of(":\r");
+      size_t port_start = Host.find_first_of(":");
       //if we allowed it to declare port
       //maybe the we could hard code as 80
       if (port_start != std::string::npos) {
@@ -157,6 +158,28 @@ class http_Request {
       }
       REQUEST = Line.substr(0, request_line_end);
       header_data = Line.substr(request_line_end + 2);
+    }
+    catch (std::exception & e) {
+      std::stringstream sstream;
+      sstream << "Bad request" << e.what() << "\n";
+      std::cout << "The proxy cannot understand" << e.what() << std::endl;
+      const char * message = sstream.str().c_str();
+      send(socket_des, &message, strlen(message), 0);
+      return;
+    }
+  }
+  void getMethod() {
+    try {
+      size_t start_line = Line.find_first_of(" ");
+      Method = Line.substr(0, start_line);
+      std::string get = "GET";
+      std::string post = "POST";
+      std::string connect = "CONNECT";
+      if (Method != get && Method != connect && Method != post) {
+        assert(Method.c_str() != get);
+        std::cout << "Illegal method is " << Method.c_str() << std::endl;
+        throw std::invalid_argument("Only support GET POST CONNECT methods");
+      }
     }
     catch (std::exception & e) {
       std::stringstream sstream;

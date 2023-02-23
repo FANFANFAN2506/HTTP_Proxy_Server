@@ -1,4 +1,5 @@
 #include "proxy.hpp"
+
 #include "utils.hpp"
 
 void * runProxy(void * myProxy) {
@@ -17,14 +18,18 @@ void Proxy::setRequest(std::string Line) {
     time_t curr_time;
     time(&curr_time);
     request = new http_Request(this->socket_des, Line, this->clientIP, curr_time);
+    request->constructRequest();
+    std::cout << "request has the line: " << request->return_Line() << std::endl;
   }
   catch (std::exception & e) {
+    delete request;
     std::cerr << "Request construction failed" << std::endl;
   }
 }
 
 void Proxy::judgeRequest() {
   if (request->return_method() == "CONNECT") {
+    int error;
     std::cout << "connect" << std::endl;
     /* If the method is CONNECT: 
     1. Setup the connection with target server
@@ -32,17 +37,22 @@ void Proxy::judgeRequest() {
     3. Reply a HTTP 200 OK 
     */
     int socket_server = connectServer();
-    const char * message_server = request->return_header().c_str();
-    send(socket_server, &message_server, strlen(message_server), 0);
-    std::cout << "send to server" << std::endl;
     std::stringstream sstream;
-    sstream << request->return_httpver() << " 200 OK\r\n";
-    const char * message_client = sstream.str().c_str();
-    send(request->return_socket_des(), &message_client, strlen(message_client), 0);
+    sstream << request->return_httpver() << " 200 OK\r\n\r\n";
+    // const char * message_client = "HTTP/1.1 200 OK\r\n\r\n";
+    std::cout << sstream.str().c_str() << std::endl;
+    error = send(request->return_socket_des(),
+                 sstream.str().c_str(),
+                 strlen(sstream.str().c_str()),
+                 0);
+    if (error < 0) {
+      cerr << "Cannot send back" << std::endl;
+      return;
+    }
     std::cout << "send back" << std::endl;
     connectTunnel(socket_server);
     //Finish connect
-    pthread_exit(NULL);
+    return;
   }
   else if (request->return_method() == "POST") {
     /*Receive the request, send to server
@@ -50,14 +60,15 @@ void Proxy::judgeRequest() {
     */
     int socket_server = connectServer();
     int socket_client = socket_des;
-    const char * message_server = request->return_Line().c_str();
-    send(socket_server, &message_server, strlen(message_server), 0);
+    send(socket_server,
+         request->return_Line().c_str(),
+         strlen(request->return_Line().c_str()),
+         0);
     std::string input = recvAll(socket_server);
     if (input.size() == 0) {
       return;
     }
-    const char * reply = input.c_str();
-    send(socket_client, &reply, strlen(reply), 0);
+    send(socket_client, input.c_str(), strlen(input.c_str()), 0);
     close(socket_client);
     close(socket_server);
     return;
@@ -71,23 +82,23 @@ void Proxy::judgeRequest() {
 int Proxy::connectServer() {
   int error;
   int socket_server;
-  const char * server_ip = request->return_Host().c_str();
-  const char * server_port = request->return_port().c_str();
+  std::cout << "Request target server ip: " << request->return_Host().c_str()
+            << std::endl;
+  std::cout << "target port: " << request->return_port().c_str() << std::endl;
   struct addrinfo hints, *res;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
-  error = getaddrinfo(server_ip, server_port, &hints, &res);
+  error = getaddrinfo(
+      request->return_Host().c_str(), request->return_port().c_str(), &hints, &res);
   if (error != 0) {
     std::cerr << "In connection: ";
-    std::cerr << "Error: cannot get the address info from the host " << clientIP
-              << " on port: " << server_port << std::endl;
+    std::cerr << "Error: cannot get the address info from the host " << std::endl;
     pthread_exit(NULL);
   }
   socket_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
   if (socket_server == -1) {
-    std::cerr << "Error: cannot create socket for " << clientIP
-              << " on port: " << server_port << std::endl;
+    std::cerr << "Error: cannot create socket for " << std::endl;
     pthread_exit(NULL);
   }
   error = connect(socket_server, res->ai_addr, res->ai_addrlen);
@@ -103,7 +114,7 @@ void Proxy::connectTunnel(int socket_server) {
   fd_set listen_ports;
   int maxdes;
   FD_ZERO(&listen_ports);
-  int socket_client = request->return_socket_des();
+  int socket_client = this->socket_des;
   FD_SET(socket_client, &listen_ports);
   maxdes = socket_client;
   FD_SET(socket_server, &listen_ports);
@@ -116,15 +127,19 @@ void Proxy::connectTunnel(int socket_server) {
   FD_ZERO(&temp_list);
   while (end) {
     temp_list = listen_ports;
+    std::cout << "start select" << std::endl;
     error = select(maxdes + 1, &temp_list, NULL, NULL, NULL);
+    std::cout << "finish select" << std::endl;
     if (error == -1) {
       std::cerr << "Error cannot select" << std::endl;
       pthread_exit(NULL);
     }
     for (int i = 0; i <= maxdes; i++) {
+      std::cout << i << std::endl;
       if (FD_ISSET(i, &temp_list)) {
         //There is a message received
-        std::string input = recvAll(i);
+        std::string input = recvAll(socket_server);
+        std::cout << "Input is" << input << std::endl;
         if (input.size() == 0) {
           //One of the socket closed on there side
           close(socket_server);
@@ -133,15 +148,14 @@ void Proxy::connectTunnel(int socket_server) {
           end = 0;
         }
         else {
-          //We got the message
-          const char * reply = input.c_str();
+          std::cout << "There is message received" << std::endl;
           if (i == socket_server) {
             //The message is from server
-            send(socket_client, &reply, strlen(reply), 0);
+            send(socket_client, input.c_str(), strlen(input.c_str()), 0);
           }
           else {
             //The message is from client
-            send(socket_server, &reply, strlen(reply), 0);
+            send(socket_server, input.c_str(), strlen(input.c_str()), 0);
           }
         }  //End of if for recv 0
       }    //End of if for check fd_set
