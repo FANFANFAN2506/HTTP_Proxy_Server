@@ -7,11 +7,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <iostream>
 
-#include "log.cpp"
 #include "proxy.hpp"
+//#include "utils.hpp"
 
 #define PORT "12345"
 #define MAXPENDING 10
@@ -19,7 +18,6 @@
 long requestID = 0;
 
 using namespace std;
-
 int main(int argc, char * argv[]) {
   int status;
   int socket_fd;
@@ -81,7 +79,7 @@ int main(int argc, char * argv[]) {
     client_connection_fd =
         accept(socket_fd, (struct sockaddr *)&socket_addr, &socket_addr_len);
     if (client_connection_fd == -1) {
-      log("NULL: Failed to estblish connection with client");
+      //log("NULL: Failed to estblish connection with client");
     }
     else {
       string ip = inet_ntoa(socket_addr.sin_addr);

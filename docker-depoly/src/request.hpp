@@ -27,6 +27,7 @@ class http_Request {
   std::string http_ver;
   std::string Host_name;  //Target server IP
   std::string Host_port;  //Target server port
+  std::string requestLine;
   time_t TIME;
 
  public:

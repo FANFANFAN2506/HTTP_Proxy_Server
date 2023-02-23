@@ -2,10 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-
+#include <fstream>
 #include <ctime>
 #include <iostream>
 #include <vector>
+#include <pthread.h>
+
+extern pthread_mutex_t logLock;
+
+void log(std::string msg){
+    pthread_mutex_lock(&logLock);
+    std::ofstream logfile;
+    logfile.open("../log/proxy.log",std::ios::app);
+    logfile << msg;
+    logfile.close();
+    pthread_mutex_unlock(&logLock);
+}
 
 char * to_char(std::string s) {
   char * cstr;
@@ -24,7 +36,7 @@ std::vector<char> recvChar(int client_fd) {
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
     //There is data received
     total += data_rec;
-    std::cout << "size is " << data_buff.size() << std::endl;
+    // std::cout << "size is " << data_buff.size() << std::endl;
     if (data_rec < increment) {
       //connection close
       break;
@@ -49,27 +61,9 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
-std::string receiveAll(int client_fd) {
-  char buffer[10];
-  std::string ans;
-  memset(buffer, 0, 10);
-  int i = 0;
-  while ((i = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) {
-    std::string tmp = buffer;
-    ans.append(tmp);
-    memset(buffer, 0, sizeof(buffer));
-    if (i < 10) {
-      break;
-    }
-  }
-  return ans;
-}
-
-std::string parseTime(time_t curr_time) {
-  // time_t curr_time;
-  // time(&curr_time);
+std::string parseTime(time_t time) {
   struct tm * timeinfo;
-  timeinfo = localtime(&curr_time);
-  std::string Curr_time = asctime(timeinfo);
-  return Curr_time;
+  timeinfo = localtime(&time);
+  std::string time_str = asctime(timeinfo);
+  return time_str;
 }

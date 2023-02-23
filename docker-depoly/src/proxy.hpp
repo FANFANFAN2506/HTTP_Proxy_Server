@@ -41,8 +41,8 @@ class Proxy {
   void setRequest(std::string Line);
   int connectServer();
   void judgeRequest();
-  void connectTunnel(int socket_server);
-  void handleConnect(int server_fd);
+  void proxyCONNECT();
+  void proxyPOST();
   void destructProxy() {
     if (request) {
       delete request;
