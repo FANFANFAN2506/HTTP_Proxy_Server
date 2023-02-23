@@ -13,33 +13,12 @@ std::string recvAll(int client_fd) {
   int start = 0;
   std::vector<char> data_buff(increment, 0);
   data_rec = recv(client_fd, &data_buff.data()[start], increment, 0);
+  std::cout << "receive from " << client_fd << std::endl;
   if (data_rec == 0) {
     std::cerr << "The connection is closed" << std::endl;
     return "";
   }
   data_buff.resize(data_rec);
-  // return data_buff;
-  // int data_rec = 0;
-  // int last_rec = 0;
-  // //each received max length,as large as possible to reduce recv time
-  //
-  // do {
-  //   std::cout << start << std::endl;
-  //   last_rec = data_rec;
-  //   start += data_rec;
-  //   data_buff.resize(start + increment);
-  //   data_rec = recv(client_fd, &data_buff.data()[start], increment, 0);
-  //   if (data_rec == 0) {
-  //     std::cerr << "The connection is closed" << std::endl;
-  //     return "";
-  //   }
-  //   for (size_t i = 0; i < data_buff.size(); i++) {
-  //     std::cout << data_buff[i];
-  //   }
-  //   std::cout << std::endl;
-  // } while (data_rec >= last_rec);
-  // int diff = increment - data_rec;
-  // data_buff.resize(data_buff.size() - diff);
   std::string request;
   for (size_t i = 0; i < data_buff.size(); i++) {
     request += data_buff[i];
@@ -47,28 +26,16 @@ std::string recvAll(int client_fd) {
   return request;
 }
 
-<<<<<<< HEAD
 std::string receiveAll(int client_fd) {
-  char buffer[100];
-  std::string ans;
-  memset(buffer, 0, 100);
-  cout << "i am here " << std::endl;
-  while (recv(client_fd, buffer, sizeof(buffer), MSG_DONTWAIT) > 0) {
-    std::cout << "buffer" << buffer << std::endl;
-    ans.append(buffer);
-    memset(buffer, 0, 100);
-=======
-std::string receiveAll(int client_fd){
   char buffer[10];
   std::string ans;
-  memset(buffer,0,10);
+  memset(buffer, 0, 10);
   //std::cout<< recv(client_fd, buffer, sizeof(buffer), 0) <<std::endl;
-  while(recv(client_fd, buffer, sizeof(buffer), MSG_WAITALL) > 0){
+  while (recv(client_fd, buffer, sizeof(buffer), MSG_WAITALL) > 0) {
     string tmp = buffer;
     ans.append(tmp);
     // std::cout << buffer << std::endl;
-    memset(buffer,0,sizeof(buffer));
->>>>>>> d79965312013ffca60e622d25c6939d8668032f2
+    memset(buffer, 0, sizeof(buffer));
   }
   std::cout << ans << std::endl;
   return ans;

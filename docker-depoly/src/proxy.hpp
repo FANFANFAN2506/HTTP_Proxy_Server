@@ -8,10 +8,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <iostream>
 
-#include "request.hpp"
 #include "cache.hpp"
+#include "request.hpp"
 
 class Proxy {
  public:
@@ -26,7 +27,11 @@ class Proxy {
   //Constructor
   Proxy() : uid(0), socket_des(0), clientIP(), request(NULL) /*, response(NULL)*/ {}
   Proxy(long id, int sd, std::string ip, Cache * cache) :
-      uid(id), socket_des(sd), clientIP(ip),  request(NULL), cache(cache) /*,response(NULL)*/ {}
+      uid(id),
+      socket_des(sd),
+      clientIP(ip),
+      request(NULL),
+      cache(cache) /*,response(NULL)*/ {}
   //Get the private field
   long return_UID() const { return uid; }
   int return_socket_des() const { return socket_des; }
