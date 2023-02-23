@@ -7,10 +7,12 @@ void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   // std::string Line = receiveAll(Proxy_instance->socket_des);
   std::string Line = recvAll(Proxy_instance->return_socket_des());
-  // std::cout << "Line received is " << Line << std::endl;
+  std::cout << "Line received is " << Line << std::endl;
   // std::string Line = receiveAll(Proxy_instance->socket_des);
   Proxy_instance->setRequest(Line);
   Proxy_instance->judgeRequest();
+  // Proxy_instance->destructProxy();
+  delete Proxy_instance;
   return NULL;
 }
 
@@ -27,16 +29,17 @@ void Proxy::setRequest(std::string Line) {
   catch (std::exception & e) {
     delete request;
     std::cerr << "Request construction failed" << std::endl;
+    pthread_exit(0);
   }
 }
 
 void Proxy::judgeRequest() {
   if (request->return_method() == "CONNECT") {
     std::cout << "connect" << std::endl;
-    /* If the method is CONNECT: 
-    1. Setup the connection with target server
-    2. The request line should be ignored, send the header & data to server
-    3. Reply a HTTP 200 OK 
+    /** If the method is CONNECT: 
+     * Setup the connection with target server
+     * Reply a HTTP 200 OK 
+     * Connect the Tunnel
     */
     int socket_server = connectServer();
     connectTunnel(socket_server);
@@ -44,20 +47,24 @@ void Proxy::judgeRequest() {
     return;
   }
   else if (request->return_method() == "POST") {
-    /*Receive the request, send to server
-    Receive the response, send to client
+    /** 
+     * Receive the request, send to server
+     * Receive the response, send to client
     */
+    std::cout << "POST method" << std::endl;
     int socket_server = connectServer();
     int socket_client = socket_des;
     send(socket_server,
          request->return_Line().c_str(),
          strlen(request->return_Line().c_str()),
          0);
-    std::string input = recvAll(socket_server);
+    std::vector<char> input = recvChar(socket_server);
     if (input.size() == 0) {
+      close(socket_client);
+      close(socket_server);
       return;
     }
-    send(socket_client, input.c_str(), strlen(input.c_str()), 0);
+    send(socket_client, &input.data()[0], input.size(), 0);
     close(socket_client);
     close(socket_server);
     return;

@@ -24,7 +24,7 @@ std::vector<char> recvChar(int client_fd) {
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
     //There is data received
     total += data_rec;
-    // std::cout << "size is " << data_rec << std::endl;
+    std::cout << "size is " << data_buff.size() << std::endl;
     if (data_rec < increment) {
       //connection close
       break;

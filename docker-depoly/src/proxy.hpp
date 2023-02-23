@@ -43,6 +43,11 @@ class Proxy {
   void judgeRequest();
   void connectTunnel(int socket_server);
   void handleConnect(int server_fd);
+  void destructProxy() {
+    if (request) {
+      delete request;
+    }
+  }
   ~Proxy() {}
 };
 
