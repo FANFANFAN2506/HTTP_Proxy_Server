@@ -1,5 +1,4 @@
 #include <stdlib.h>
-
 #include <list>
 #include <unordered_map>
 
@@ -27,21 +26,22 @@ class Cache {
     return it->second->second;
   }
 
-  void put(string url, http_Response * value) {
+  string put(string url, http_Response * value) {
     const auto it = map.find(url);
-
+    string ans;
     // Key already exists
     if (it != map.cend()) {
       // Update the value
       it->second->second = value;
       // Move this entry to the front of the cache
       cache.splice(cache.begin(), cache, it->second);
-      return;
+      return NULL;
     }
 
     // Reached the capacity, remove the oldest entry
     if (cache.size() == capacity) {
       const auto & node = cache.back();
+      ans = node.first;
       map.erase(node.first);
       cache.pop_back();
     }
@@ -49,5 +49,6 @@ class Cache {
     // Insert the entry to the front of the cache and update mapping.
     cache.emplace_front(url, value);
     map[url] = cache.begin();
+    return ans;
   }
 };

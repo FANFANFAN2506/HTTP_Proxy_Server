@@ -13,7 +13,6 @@
 
 #include "cache.hpp"
 #include "request.hpp"
-#include "log.hpp"
 
 class Proxy {
  public:
@@ -44,12 +43,19 @@ class Proxy {
   void judgeRequest();
   void proxyCONNECT();
   void proxyPOST();
+  void proxyERROR(int code);
   void destructProxy() {
     if (request) {
       delete request;
     }
   }
-  ~Proxy() {}
+  ~Proxy() {
+    if (request) {
+      delete request;
+    }
+  }
 };
 
 void * runProxy(void * myProxy);
+void proxyListen();
+

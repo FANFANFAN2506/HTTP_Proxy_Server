@@ -1,11 +1,92 @@
-#include "proxy.hpp"
 #include <unistd.h>
+#include <memory>
+
 #include "utils.hpp"
+#include "proxy.hpp"
+#include "log.hpp"
+
+#define PORT "12345"
+#define MAXPENDING 10
+#define MAXCachingCapacity 100
+long requestID = 0;
+pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
+
+void proxyListen(){
+  int status;
+  int socket_fd;
+  struct addrinfo host_info;
+  struct addrinfo *host_info_list, *a;
+  const char * hostname = "0.0.0.0";
+  const char * port = PORT;
+
+  memset(&host_info, 0, sizeof(host_info));
+
+  host_info.ai_family = AF_UNSPEC;
+  host_info.ai_socktype = SOCK_STREAM;
+  host_info.ai_flags    = AI_PASSIVE;
+
+  status = getaddrinfo(hostname, port, &host_info, &host_info_list);
+  if (status != 0) {
+    log(std::string("(no-id): ERROR request construction failed \n"));
+    return;
+  }
+  for (a = host_info_list; a != NULL; a = a->ai_next) {
+    socket_fd = socket(a->ai_family, a->ai_socktype, a->ai_protocol);
+    if (socket_fd == -1) {
+      log(std::string("(no-id): ERROR cannot create socket \n"));
+      continue;
+    }
+
+    int yes = 1;
+    status = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+    status = bind(socket_fd, a->ai_addr, a->ai_addrlen);
+    if (status == -1) {
+      close(socket_fd);
+      log(std::string("(no-id): ERROR cannot bind socket \n"));
+      continue;
+    }
+    break;
+  }
+  if (a == NULL) {
+    log(std::string("(no-id): ERROR selectserver failed to bind \n"));
+    exit(EXIT_FAILURE);
+  }
+  freeaddrinfo(host_info_list);
+  status = listen(socket_fd, MAXPENDING);
+  if (status == -1) {
+    log(std::string("(no-id): ERROR request construction failed \n"));
+    cerr << "Error: cannot listen on socket" << endl;
+    cerr << "  (" << hostname << "," << port << ")" << endl;
+    return;
+  }
+
+  Cache * cache = new Cache(MAXCachingCapacity);
+  cout << "Waiting for connection on port " << port << endl;
+  struct sockaddr_in socket_addr;
+  socklen_t socket_addr_len = sizeof(socket_addr);
+  int client_connection_fd;
+  while (1) {
+    client_connection_fd =
+        accept(socket_fd, (struct sockaddr *)&socket_addr, &socket_addr_len);
+    if (client_connection_fd == -1) {
+      log("(no-id): Failed to estblish connection with client");
+    }
+    else {
+      string ip = inet_ntoa(socket_addr.sin_addr);
+      pthread_t thread;
+      //This pointer may need to be considered for RAII0
+      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, cache);
+      pthread_create(&thread, NULL, runProxy, myProxy);
+      requestID++;
+    }
+  }
+  return;
+}
 
 //异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
-  // std::string Line = receiveAll(Proxy_instance->socket_des);
+
   std::string Line = recvAll(Proxy_instance->return_socket_des());
   //std::cout << "Line received is " << Line << std::endl;
   Proxy_instance->setRequest(Line);
@@ -57,7 +138,8 @@ void Proxy::judgeRequest() {
     return;
   }
   else if(request->return_method() == "GET"){
-    //Thre request is GET
+    std::cout << request->return_request() << std::endl;
+    proxyERROR(404);
     return;
   }else{
     //400
@@ -78,6 +160,7 @@ int Proxy::connectServer() {
     std::cerr << "In connection: ";
     std::cerr << "Error: cannot get the address info from the host " << std::endl;
     log(std::string(to_string(uid) + ": ERROR cannot get the address info from the host \n"));
+    proxyERROR(404);
     pthread_exit(NULL);
   }
   socket_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -157,20 +240,37 @@ void Proxy::proxyCONNECT() {
 }
 
 void Proxy::proxyPOST(){
-    int socket_server = connectServer();
-    int socket_client = socket_des;
-    send(socket_server,
-         request->return_Line().c_str(),
-         strlen(request->return_Line().c_str()),
-         0);
-    std::vector<char> input = recvChar(socket_server);
-    if (input.size() == 0) {
-      close(socket_client);
-      close(socket_server);
-      return;
-    }
-    send(socket_client, &input.data()[0], input.size(), 0);
-    log(std::string(to_string(uid) + ": Responding \"HTTP/1.1 200 OK\" \n"));
+  int socket_server = connectServer();
+  int socket_client = socket_des;
+  send(socket_server,
+        request->return_Line().c_str(),
+        strlen(request->return_Line().c_str()),
+        0);
+  std::vector<char> input = recvChar(socket_server);
+  if (input.size() == 0) {
     close(socket_client);
     close(socket_server);
+    return;
+  }
+  send(socket_client, &input.data()[0], input.size(), 0);
+  log(std::string(to_string(uid) + ": Responding \"HTTP/1.1 200 OK\" \n"));
+  close(socket_client);
+  close(socket_server);
+}
+
+void Proxy::proxyERROR(int code){
+  int clinet_fd = socket_des;
+  string resp;
+  switch(code){
+    case 404:
+      resp = "HTTP/1.1 404 Not Found\r\n\r\n";
+      break;
+    case 400:
+      resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
+      break;
+    case 502:
+      resp = "HTTP/1.1 502 Bad Gateway\r\n\r\n";
+      break;
+  }
+  send(clinet_fd, resp.c_str(), resp.length(), 0);
 }
