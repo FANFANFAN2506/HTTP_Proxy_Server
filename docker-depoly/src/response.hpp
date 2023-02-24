@@ -75,13 +75,9 @@ class http_Response {
   int parseResponse() {
     httpparser::Response parsed_response;
     httpparser::HttpResponseParser parser;
-    // const char * line = this->Line.c_str();
-    // httpparser::HttpResponseParser::ParseResult result =
-    //     parser.parse(parsed_response, line, line + strlen(line));
     httpparser::HttpResponseParser::ParseResult result = parser.parse(
         parsed_response, &line_recv.data()[0], &line_recv.data()[0] + line_recv.size());
     if (result == httpparser::HttpResponseParser::ParsingCompleted) {
-      // std::cout << parsed_response.inspect() << std::endl;
       status = parsed_response.status;
       statusCode = parsed_response.statusCode;
       std::cout << "!!!!" << statusCode << std::endl;
