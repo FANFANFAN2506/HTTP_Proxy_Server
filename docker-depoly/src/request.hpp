@@ -87,9 +87,6 @@ class http_Request {
   int parseRequest() {
     httpparser::Request parsed_request;
     httpparser::HttpRequestParser parser;
-    // const char * line = this->Line.c_str();
-    // httpparser::HttpRequestParser::ParseResult parsed_result =
-    //     parser.parse(parsed_request, line, line + strlen(line));
     httpparser::HttpRequestParser::ParseResult parsed_result = parser.parse(
         parsed_request, &line_send.data()[0], &line_send.data()[0] + line_send.size());
     if (parsed_result == httpparser::HttpRequestParser::ParsingCompleted) {
@@ -103,7 +100,6 @@ class http_Request {
       if (getHostIp(parsed_request) < 0) {
         return -1;
       }
-      //Host name + Host_port + uri
       uri = Host_name + Host_port + uri;
       // }
       return 0;
@@ -126,7 +122,7 @@ class http_Request {
           Host_port = host_line.substr(port_start + 1);
         }
         else {
-          //not declared port; default 80 port for HTTP/TCP
+          //not declared port; default 80 port for HTTP
           Host_name = host_line;
           Host_port = "80";
         }

@@ -58,6 +58,7 @@ class http_Response {
   int return_socket() const { return socket_server; }
   std::string return_line() const { return Line; }
   std::string return_httpver() const { return http_ver; }
+  std::vector<char> return_line_recv() const { return line_recv; }
   unsigned int return_statuscode() const { return statusCode; }
   std::string return_status() const { return status; }
   std::string return_cache_ctrl() const { return cache_ctrl; }

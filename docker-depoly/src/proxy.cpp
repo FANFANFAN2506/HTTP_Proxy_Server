@@ -90,13 +90,13 @@ void proxyListen() {
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   // try {
-    // std::string Line = recvAll(Proxy_instance->return_socket_des());
-    std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-    std::string Line = char_to_string(line_send);
-    //std::cout << "Line received is " << Line << std::endl;
-    Proxy_instance->setRequest(Line, line_send);
-    Proxy_instance->judgeRequest();
-    delete Proxy_instance;
+  // std::string Line = recvAll(Proxy_instance->return_socket_des());
+  std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
+  std::string Line = char_to_string(line_send);
+  //std::cout << "Line received is " << Line << std::endl;
+  Proxy_instance->setRequest(Line, line_send);
+  Proxy_instance->judgeRequest();
+  delete Proxy_instance;
   // }
   // catch (std::exception & e) {
   //   delete Proxy_instance;
@@ -281,23 +281,35 @@ void Proxy::proxyGET() {
   http_Response * response_instance = this->cache->get(request_url);
   if (response_instance == NULL) {
     //no response in cache
+    log(std::string(to_string(uid) + "not in cache\n"));
     int socket_server = connectServer();
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
-      std::string removed_node = cache->put(request_url, response_instance);
+      std::string removed_node = this->cache->put(request_url, response_instance);
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
+        log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
       }
     }
+    //No need to cache
   }
-  //if not
+  else {
+    //If we find this in the cache;
+    //Expiration function
+    //Need validation function
+    //Valid
+    log(std::string(to_string(uid) + "in cache, valid\n"));
+    std::vector<char> reply = response_instance->return_line_recv();
+    send(socket_client, &reply.data()[0], reply.size(), 0);
+  }
   //
-  close(socket_server);
+  if (socket_server) {
+    close(socket_server);
+  }
   close(socket_client);
   return;
 }
-
 http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   /**
  * Get the request, and send to the server
