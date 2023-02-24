@@ -22,7 +22,7 @@ class http_Response {
   time_t EXPIRES;
 
  public:
-  http_Response():
+  http_Response() :
       socket_server(0),
       Line(),
       http_ver(),
@@ -30,7 +30,7 @@ class http_Response {
       status(),
       cache_ctrl(),
       EXPIRES() {}
-  http_Response(int sd, std::string l):
+  http_Response(int sd, std::string l) :
       socket_server(sd),
       Line(l),
       http_ver(),
@@ -40,7 +40,6 @@ class http_Response {
       EXPIRES() {
     //Get the http_ver,status,statuscode
     //get cache_Control expires
-    parseResponse();
   }
   int return_socket() const { return socket_server; }
   std::string return_line() const { return Line; }
@@ -52,11 +51,11 @@ class http_Response {
   time_t return_expire() const { return EXPIRES; }
   std::string return_response() const {
     std::stringstream sstream;
-    sstream << http_ver << " " << statusCode << " " << status << "\r\n";
+    sstream << http_ver << " " << statusCode << " " << status;
     return sstream.str();
   }
-  
-  void parseResponse() {
+
+  int parseResponse() {
     httpparser::Response parsed_response;
     httpparser::HttpResponseParser parser;
     const char * line = this->Line.c_str();
@@ -70,16 +69,19 @@ class http_Response {
       sstream << "HTTP/" << parsed_response.versionMajor << "."
               << parsed_response.versionMinor;
       http_ver = sstream.str();
-      get_cache_expire(parsed_response);
-      return;
+      int error = get_cache_expire(parsed_response);
+      if (error == -1) {
+        return -1;
+      }
+      return 0;
     }
     else {
       std::cerr << "Parsing failed" << std::endl;
-      return;
+      return -1;
     }
   }
 
-  void get_cache_expire(httpparser::Response & parsed_response) {
+  int get_cache_expire(httpparser::Response & parsed_response) {
     std::vector<httpparser::Response::HeaderItem>::const_iterator it;
     for (it = parsed_response.headers.begin(); it != parsed_response.headers.end();
          ++it) {
@@ -94,10 +96,12 @@ class http_Response {
         char * res = strptime(expire_time.c_str(), format, &tm);
         if (res == nullptr) {
           std::cerr << "wrong time conversion" << std::endl;
+          return -1;
         }
         time_t ti = mktime(&tm);
         EXPIRES = ti;
       }
     }
+    return 0;
   }
 };

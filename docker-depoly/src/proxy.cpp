@@ -1,9 +1,11 @@
+#include "proxy.hpp"
+
 #include <unistd.h>
+
 #include <memory>
 
-#include "utils.hpp"
-#include "proxy.hpp"
 #include "log.hpp"
+#include "utils.hpp"
 
 #define PORT "12345"
 #define MAXPENDING 10
@@ -11,7 +13,7 @@
 long requestID = 0;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 
-void proxyListen(){
+void proxyListen() {
   int status;
   int socket_fd;
   struct addrinfo host_info;
@@ -23,7 +25,7 @@ void proxyListen(){
 
   host_info.ai_family = AF_UNSPEC;
   host_info.ai_socktype = SOCK_STREAM;
-  host_info.ai_flags    = AI_PASSIVE;
+  host_info.ai_flags = AI_PASSIVE;
 
   status = getaddrinfo(hostname, port, &host_info, &host_info_list);
   if (status != 0) {
@@ -87,9 +89,11 @@ void proxyListen(){
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
 
-  std::string Line = recvAll(Proxy_instance->return_socket_des());
+  // std::string Line = recvAll(Proxy_instance->return_socket_des());
+  std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
+  std::string Line = char_to_string(line_send);
   //std::cout << "Line received is " << Line << std::endl;
-  Proxy_instance->setRequest(Line);
+  Proxy_instance->setRequest(Line, line_send);
   Proxy_instance->judgeRequest();
   // Proxy_instance->destructProxy();
   delete Proxy_instance;
@@ -98,15 +102,16 @@ void * runProxy(void * myProxy) {
 
 //Proxy memeber functions:
 
-void Proxy::setRequest(std::string Line) {
+void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
   try {
     // std::string Received_time = get_current_Time();
     time_t curr_time;
     time(&curr_time);
-    request = new http_Request(this->socket_des, Line, this->clientIP, curr_time);
+    request =
+        new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
     request->constructRequest();
-    std::string msg = to_string(uid) + ": \""  + request->return_request() +"\" from "+
-    request->return_ip() + " @ " + parseTime(request->return_time());
+    std::string msg = to_string(uid) + ": \"" + request->return_request() + "\" from " +
+                      request->return_ip() + " @ " + parseTime(request->return_time());
     log(msg);
   }
   catch (std::exception & e) {
@@ -125,23 +130,27 @@ void Proxy::judgeRequest() {
      * Reply a HTTP 200 OK 
      * Connect the Tunnel
     */
-    log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() + "\" from "+ request->return_Host() + "\n"));
+    log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() +
+                    "\" from " + request->return_Host() + "\n"));
     proxyCONNECT();
     log(std::string(to_string(uid) + ": Tunnel closed \n"));
     //Finish connect
     return;
   }
   else if (request->return_method() == "POST") {
-    log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() + "\" from "+ request->return_Host() + "\n"));
+    log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() +
+                    "\" from " + request->return_Host() + "\n"));
     proxyPOST();
 
     return;
   }
-  else if(request->return_method() == "GET"){
+  else if (request->return_method() == "GET") {
     std::cout << request->return_request() << std::endl;
     proxyERROR(404);
+    proxyGET();
     return;
-  }else{
+  }
+  else {
     //400
     return;
   }
@@ -159,14 +168,16 @@ int Proxy::connectServer() {
   if (error != 0) {
     std::cerr << "In connection: ";
     std::cerr << "Error: cannot get the address info from the host " << std::endl;
-    log(std::string(to_string(uid) + ": ERROR cannot get the address info from the host \n"));
+    log(std::string(to_string(uid) +
+                    ": ERROR cannot get the address info from the host \n"));
     proxyERROR(404);
     pthread_exit(NULL);
   }
   socket_server = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
   if (socket_server == -1) {
     std::cerr << "Error: cannot create socket for " << std::endl;
-    log(std::string(to_string(uid) + ": ERROR cannot create socket for host" + request->return_Host() + "\n"));
+    log(std::string(to_string(uid) + ": ERROR cannot create socket for host" +
+                    request->return_Host() + "\n"));
     pthread_exit(NULL);
   }
   error = connect(socket_server, res->ai_addr, res->ai_addrlen);
@@ -239,29 +250,73 @@ void Proxy::proxyCONNECT() {
   return;  //End of func
 }
 
-void Proxy::proxyPOST(){
+void Proxy::proxyPOST() {
   int socket_server = connectServer();
   int socket_client = socket_des;
-  send(socket_server,
-        request->return_Line().c_str(),
-        strlen(request->return_Line().c_str()),
-        0);
-  std::vector<char> input = recvChar(socket_server);
-  if (input.size() == 0) {
-    close(socket_client);
-    close(socket_server);
-    return;
+  std::vector<char> send_request = request->return_line_send();
+  http_Response * Proxy_temp = proxyFetch(socket_server, socket_client);
+  if (Proxy_temp != NULL) {
+    delete Proxy_temp;
   }
-  send(socket_client, &input.data()[0], input.size(), 0);
-  log(std::string(to_string(uid) + ": Responding \"HTTP/1.1 200 OK\" \n"));
   close(socket_client);
   close(socket_server);
 }
 
-void Proxy::proxyERROR(int code){
+void Proxy::proxyGET() {
+  /**
+   * 1. Search from cache
+   * 2. Check Expire and validation
+   * 3. Send validation to server
+   * 4. If good: send cached response back
+   *    else: send the request, and get response update and reply with the response
+  */
+  int socket_server = 0;
+  int socket_client = socket_des;
+  std::string request_url = request->return_uri();
+  //search from the cache
+  http_Response * response_instance = this->cache->get(request_url);
+  if (response_instance == NULL) {
+    //no response in cache
+    int socket_server = connectServer();
+    response_instance = proxyFetch(socket_server, socket_client);
+  }
+  //if not
+  //
+  close(socket_server);
+  close(socket_client);
+  return;
+}
+
+http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
+  std::vector<char> send_request = request->return_line_send();
+  http_Response * r1 = NULL;
+  if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
+    std::vector<char> input = recvChar(socket_server);
+    if (input.size() != 0) {
+      if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
+        std::string reply = char_to_string(input);
+        r1 = new http_Response(socket_server, reply);
+        int error = r1->parseResponse();
+        if (error == -1) {
+          //error in constructing Reponse;
+          //502 error code
+          return NULL;
+        }
+        else {
+          // log(std::string(to_string(uid) + ": Responding \"HTTP/1.1 200 OK\" \n"));
+          log(std::string(to_string(uid) + ": Responding \"" + r1->return_response() +
+                          "\"\n"));
+          return r1;
+        }
+      }
+    }
+  }
+  return r1;
+}
+void Proxy::proxyERROR(int code) {
   int clinet_fd = socket_des;
   string resp;
-  switch(code){
+  switch (code) {
     case 404:
       resp = "HTTP/1.1 404 Not Found\r\n\r\n";
       break;

@@ -1,18 +1,20 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <fstream>
+
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <vector>
-#include <pthread.h>
 
-char * to_char(std::string s) {
-  char * cstr;
-  cstr = new char[s.size() + 1];
-  strcpy(cstr, s.c_str());
-  return cstr;
+std::string char_to_string(std::vector<char> & vc) {
+  std::string request;
+  for (size_t i = 0; i < vc.size(); i++) {
+    request += vc[i];
+  }
+  return request;
 }
 
 std::vector<char> recvChar(int client_fd) {
