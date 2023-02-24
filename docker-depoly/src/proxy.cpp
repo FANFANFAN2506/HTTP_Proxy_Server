@@ -1,8 +1,8 @@
 #include "proxy.hpp"
 #include <unistd.h>
 #include "utils.hpp"
-pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
-//异常处理(对于一些不存在的域名，不需要pending)，跨方法 log
+
+//异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   // std::string Line = receiveAll(Proxy_instance->socket_des);
@@ -58,6 +58,9 @@ void Proxy::judgeRequest() {
   }
   else if(request->return_method() == "GET"){
     //Thre request is GET
+    return;
+  }else{
+    //400
     return;
   }
 }

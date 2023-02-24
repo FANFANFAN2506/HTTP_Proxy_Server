@@ -10,12 +10,12 @@
 #include <iostream>
 
 #include "proxy.hpp"
-//#include "utils.hpp"
 
 #define PORT "12345"
 #define MAXPENDING 10
 #define MAXCachingCapacity 100
 long requestID = 0;
+pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 
 using namespace std;
 int main(int argc, char * argv[]) {

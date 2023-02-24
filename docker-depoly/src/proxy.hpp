@@ -13,6 +13,7 @@
 
 #include "cache.hpp"
 #include "request.hpp"
+#include "log.hpp"
 
 class Proxy {
  public:

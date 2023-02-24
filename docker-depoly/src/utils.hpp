@@ -8,17 +8,6 @@
 #include <vector>
 #include <pthread.h>
 
-extern pthread_mutex_t logLock;
-
-void log(std::string msg){
-    pthread_mutex_lock(&logLock);
-    std::ofstream logfile;
-    logfile.open("../log/proxy.log",std::ios::app);
-    logfile << msg;
-    logfile.close();
-    pthread_mutex_unlock(&logLock);
-}
-
 char * to_char(std::string s) {
   char * cstr;
   cstr = new char[s.size() + 1];
