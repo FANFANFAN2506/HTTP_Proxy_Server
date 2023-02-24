@@ -62,7 +62,6 @@ void proxyListen() {
     return;
   }
 
-  Cache * cache = new Cache(MAXCachingCapacity);
   cout << "Waiting for connection on port " << port << endl;
   struct sockaddr_in socket_addr;
   socklen_t socket_addr_len = sizeof(socket_addr);
@@ -77,7 +76,8 @@ void proxyListen() {
       string ip = inet_ntoa(socket_addr.sin_addr);
       pthread_t thread;
       //This pointer may need to be considered for RAII0
-      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, cache);
+      Cache * myCache = new Cache(MAXCachingCapacity);
+      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, myCache);
       pthread_create(&thread, NULL, runProxy, myProxy);
       //pthread_join(thread,NULL);
       requestID++;
@@ -89,7 +89,7 @@ void proxyListen() {
 //异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
-  try {
+  // try {
     // std::string Line = recvAll(Proxy_instance->return_socket_des());
     std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
     std::string Line = char_to_string(line_send);
@@ -97,11 +97,11 @@ void * runProxy(void * myProxy) {
     Proxy_instance->setRequest(Line, line_send);
     Proxy_instance->judgeRequest();
     delete Proxy_instance;
-  }
-  catch (std::exception & e) {
-    delete Proxy_instance;
-    std::cerr << e.what() << std::endl;
-  }
+  // }
+  // catch (std::exception & e) {
+  //   delete Proxy_instance;
+  //   std::cerr << e.what() << std::endl;
+  // }
   // Proxy_instance->destructProxy();
   return NULL;
 }
@@ -151,7 +151,6 @@ void Proxy::judgeRequest() {
     return;
   }
   else if (request->return_method() == "GET") {
-    std::cout << "Request: " << request->return_request() << std::endl;
     proxyGET();
     return;
   }
@@ -286,8 +285,7 @@ void Proxy::proxyGET() {
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
-      std::cout << "recache" << std::endl;
-      std::string removed_node = this->cache->put(request_url, response_instance);
+      std::string removed_node = cache->put(request_url, response_instance);
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
       }
@@ -339,15 +337,12 @@ void Proxy::proxyERROR(int code) {
   const char * resp;
   switch (code) {
     case 404:
-      std::cout << code << std::endl;
       resp = "HTTP/1.1 404 Not Found\r\n\r\n";
       break;
     case 400:
-      std::cout << code << std::endl;
       resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
       break;
     case 502:
-      std::cout << code << std::endl;
       resp = "HTTP/1.1 502 Bad Gateway\r\n\r\n";
       break;
   }

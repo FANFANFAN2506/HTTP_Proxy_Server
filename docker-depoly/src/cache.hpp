@@ -1,5 +1,4 @@
 #include <stdlib.h>
-
 #include <list>
 #include <unordered_map>
 
@@ -7,14 +6,16 @@
 
 using namespace std;
 class Cache {
- private:
+ public:
   size_t capacity;
-  list<pair<string, http_Response *> > cache;
+  list<pair<string, http_Response *> > respList;
   unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
 
   //mutex
  public:
-  Cache(size_t capacity) { capacity = capacity; }
+  Cache(size_t size){
+    capacity = size;
+  }
 
   http_Response * get(string url) {
     const auto it = map.find(url);
@@ -23,7 +24,7 @@ class Cache {
       return NULL;
 
     // Move this key to the front of the cache
-    cache.splice(cache.begin(), cache, it->second);
+    respList.splice(respList.begin(), respList, it->second);
     return it->second->second;
   }
 
@@ -35,21 +36,21 @@ class Cache {
       // Update the value
       it->second->second = value;
       // Move this entry to the front of the cache
-      cache.splice(cache.begin(), cache, it->second);
+      respList.splice(respList.begin(), respList, it->second);
       return "";
     }
 
     // Reached the capacity, remove the oldest entry
-    if (cache.size() == capacity) {
-      const auto & node = cache.back();
+    if (respList.size() == capacity) {
+      const auto & node = respList.back();
       ans = node.first;
       map.erase(node.first);
-      cache.pop_back();
+      respList.pop_back();
     }
 
     // Insert the entry to the front of the cache and update mapping.
-    cache.emplace_front(url, value);
-    map[url] = cache.begin();
+    respList.emplace_front(url, value);
+    map[url] = respList.begin();
     return ans;
   }
 };
