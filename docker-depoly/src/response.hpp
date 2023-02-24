@@ -41,7 +41,7 @@ class http_Response {
       socket_server(sd),
       Line(l),
       http_ver(),
-      statusCode(),
+      statusCode(0),
       status(),
       cache_ctrl(""),
       etags(""),
@@ -79,6 +79,7 @@ class http_Response {
       // std::cout << parsed_response.inspect() << std::endl;
       status = parsed_response.status;
       statusCode = parsed_response.statusCode;
+      std::cout << "!!!!" <<statusCode << std::endl;
       std::stringstream sstream;
       sstream << "HTTP/" << parsed_response.versionMajor << "."
               << parsed_response.versionMinor;
@@ -90,6 +91,7 @@ class http_Response {
       return 0;
     }
     else {
+      std::cout << "Responding: " << Line << std::endl;
       std::cerr << "Parsing failed" << std::endl;
       return -1;
     }

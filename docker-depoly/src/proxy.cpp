@@ -79,7 +79,9 @@ void proxyListen() {
       //This pointer may need to be considered for RAII0
       Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, cache);
       pthread_create(&thread, NULL, runProxy, myProxy);
+      //pthread_join(thread,NULL);
       requestID++;
+
     }
   }
   return;
@@ -150,8 +152,7 @@ void Proxy::judgeRequest() {
     return;
   }
   else if (request->return_method() == "GET") {
-    std::cout << request->return_request() << std::endl;
-    // proxyERROR(502);
+    std::cout << "Request: " <<request->return_request() << std::endl;
     proxyGET();
     return;
   }
@@ -284,9 +285,10 @@ void Proxy::proxyGET() {
     //no response in cache
     int socket_server = connectServer();
     response_instance = proxyFetch(socket_server, socket_client);
-    if (response_instance->return_statuscode() == 200) {
+    if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
       std::string removed_node = this->cache->put(request_url, response_instance);
+      std::cout << "recache" << std::endl;
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
       }
@@ -348,10 +350,8 @@ void Proxy::proxyERROR(int code) {
     case 502:
       std::cout << code << std::endl;
       resp = "HTTP/1.1 502 Bad Gateway\r\n\r\n";
-
       break;
   }
   send(client_fd, resp, strlen(resp), 0);
-  // std::cout << "send success" << std::endl;
-  // send(clinet_fd, resp.c_str(), resp.length(), 0);
+  close(client_fd);
 }
