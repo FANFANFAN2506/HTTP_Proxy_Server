@@ -109,23 +109,23 @@ void * runProxy(void * myProxy) {
 //Proxy memeber functions:
 
 void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
-  try {
-    // std::string Received_time = get_current_Time();
-    time_t curr_time;
-    time(&curr_time);
-    request =
-        new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
-    request->constructRequest();
-    std::string msg = to_string(uid) + ": \"" + request->return_request() + "\" from " +
-                      request->return_ip() + " @ " + parseTime(request->return_time());
-    log(msg);
-  }
-  catch (std::exception & e) {
+  // std::string Received_time = get_current_Time();
+  int error;
+  time_t curr_time;
+  time(&curr_time);
+  request =
+      new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
+  error = request->constructRequest();
+  if (error == -1) {
     delete request;
     //std::cerr << "Request construction failed" << std::endl;
     log(std::string(to_string(uid) + ": ERROR request construction failed \n"));
+    proxyERROR(400);
     pthread_exit(0);
   }
+  std::string msg = to_string(uid) + ": \"" + request->return_request() + "\" from " +
+                    request->return_ip() + " @ " + parseTime(request->return_time());
+  log(msg);
 }
 
 void Proxy::judgeRequest() {
