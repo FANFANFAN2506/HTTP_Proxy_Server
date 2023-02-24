@@ -146,7 +146,7 @@ void Proxy::judgeRequest() {
   }
   else if (request->return_method() == "GET") {
     std::cout << request->return_request() << std::endl;
-    proxyERROR(404);
+    // proxyERROR(502);
     proxyGET();
     return;
   }
@@ -313,19 +313,27 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   }
   return r1;
 }
+
 void Proxy::proxyERROR(int code) {
-  int clinet_fd = socket_des;
-  string resp;
+  int client_fd = socket_des;
+  // string resp;
+  const char * resp;
   switch (code) {
     case 404:
+      std::cout << code << std::endl;
       resp = "HTTP/1.1 404 Not Found\r\n\r\n";
       break;
     case 400:
+      std::cout << code << std::endl;
       resp = "HTTP/1.1 400 Bad Request\r\n\r\n";
       break;
     case 502:
+      std::cout << code << std::endl;
       resp = "HTTP/1.1 502 Bad Gateway\r\n\r\n";
+
       break;
   }
-  send(clinet_fd, resp.c_str(), resp.length(), 0);
+  send(client_fd, resp, strlen(resp), 0);
+  // std::cout << "send success" << std::endl;
+  // send(clinet_fd, resp.c_str(), resp.length(), 0);
 }

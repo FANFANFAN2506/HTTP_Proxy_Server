@@ -101,11 +101,9 @@ class http_Request {
       if (getHostIp(parsed_request) < 0) {
         return -1;
       }
-      size_t uri_in_host = uri.find(Host_name.c_str());
-      if (uri_in_host == std::string::npos) {
-        //if we didn't find host_name in uri
-        uri = Host_name + uri;
-      }
+      //Host name + Host_port + uri
+      uri = Host_name + Host_port + uri;
+      // }
       return 0;
     }
     else {
