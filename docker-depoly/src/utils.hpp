@@ -9,7 +9,7 @@
 #include <iostream>
 #include <vector>
 
-std::string char_to_string(std::vector<char> & vc) {
+std::string char_to_string(std::vector<char> vc) {
   std::string request;
   for (size_t i = 0; i < vc.size(); i++) {
     request += vc[i];
@@ -21,7 +21,7 @@ std::vector<char> recvChar(int client_fd) {
   int data_rec;
   // int increment = 65536;
   int total = 0;
-  int increment = 4096;
+  int increment = 65536;
   int start = 0;
   std::vector<char> data_buff(increment, 0);
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
@@ -37,6 +37,7 @@ std::vector<char> recvChar(int client_fd) {
     start += data_rec;
   }
   data_buff.resize(total);
+  std::cout << "data_buff is:" << total << std::endl;
   return data_buff;
 }
 

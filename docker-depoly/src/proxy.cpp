@@ -81,7 +81,6 @@ void proxyListen() {
       pthread_create(&thread, NULL, runProxy, myProxy);
       //pthread_join(thread,NULL);
       requestID++;
-
     }
   }
   return;
@@ -152,7 +151,7 @@ void Proxy::judgeRequest() {
     return;
   }
   else if (request->return_method() == "GET") {
-    std::cout << "Request: " <<request->return_request() << std::endl;
+    std::cout << "Request: " << request->return_request() << std::endl;
     proxyGET();
     return;
   }
@@ -287,8 +286,8 @@ void Proxy::proxyGET() {
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
-      std::string removed_node = this->cache->put(request_url, response_instance);
       std::cout << "recache" << std::endl;
+      std::string removed_node = this->cache->put(request_url, response_instance);
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
       }
@@ -315,7 +314,7 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
     if (input.size() != 0) {
       if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
         std::string reply = char_to_string(input);
-        r1 = new http_Response(socket_server, reply);
+        r1 = new http_Response(socket_server, reply, input);
         int error = r1->parseResponse();
         if (error == -1) {
           //error in constructing Reponse;

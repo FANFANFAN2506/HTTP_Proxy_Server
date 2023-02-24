@@ -14,6 +14,7 @@ class http_Response {
  private:
   int socket_server;
   std::string Line;
+  std::vector<char> line_recv;
   std::string http_ver;
   unsigned int statusCode;
   std::string status;
@@ -28,6 +29,7 @@ class http_Response {
   http_Response() :
       socket_server(0),
       Line(),
+      line_recv(),
       http_ver(),
       statusCode(0),
       status(),
@@ -37,9 +39,10 @@ class http_Response {
       EXPIRES(),
       Lastmodified(),
       max_age() {}
-  http_Response(int sd, std::string l) :
+  http_Response(int sd, std::string l, std::vector<char> lr) :
       socket_server(sd),
       Line(l),
+      line_recv(lr),
       http_ver(),
       statusCode(0),
       status(),
@@ -72,14 +75,16 @@ class http_Response {
   int parseResponse() {
     httpparser::Response parsed_response;
     httpparser::HttpResponseParser parser;
-    const char * line = this->Line.c_str();
-    httpparser::HttpResponseParser::ParseResult result =
-        parser.parse(parsed_response, line, line + strlen(line));
+    // const char * line = this->Line.c_str();
+    // httpparser::HttpResponseParser::ParseResult result =
+    //     parser.parse(parsed_response, line, line + strlen(line));
+    httpparser::HttpResponseParser::ParseResult result = parser.parse(
+        parsed_response, &line_recv.data()[0], &line_recv.data()[0] + line_recv.size());
     if (result == httpparser::HttpResponseParser::ParsingCompleted) {
       // std::cout << parsed_response.inspect() << std::endl;
       status = parsed_response.status;
       statusCode = parsed_response.statusCode;
-      std::cout << "!!!!" <<statusCode << std::endl;
+      std::cout << "!!!!" << statusCode << std::endl;
       std::stringstream sstream;
       sstream << "HTTP/" << parsed_response.versionMajor << "."
               << parsed_response.versionMinor;
@@ -91,7 +96,6 @@ class http_Response {
       return 0;
     }
     else {
-      std::cout << "Responding: " << Line << std::endl;
       std::cerr << "Parsing failed" << std::endl;
       return -1;
     }

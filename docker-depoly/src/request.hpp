@@ -87,9 +87,11 @@ class http_Request {
   int parseRequest() {
     httpparser::Request parsed_request;
     httpparser::HttpRequestParser parser;
-    const char * line = this->Line.c_str();
-    httpparser::HttpRequestParser::ParseResult parsed_result =
-        parser.parse(parsed_request, line, line + strlen(line));
+    // const char * line = this->Line.c_str();
+    // httpparser::HttpRequestParser::ParseResult parsed_result =
+    //     parser.parse(parsed_request, line, line + strlen(line));
+    httpparser::HttpRequestParser::ParseResult parsed_result = parser.parse(
+        parsed_request, &line_send.data()[0], &line_send.data()[0] + line_send.size());
     if (parsed_result == httpparser::HttpRequestParser::ParsingCompleted) {
       // std::cout << parsed_request.inspect() << std::endl;
       Method = parsed_request.method;
@@ -107,7 +109,7 @@ class http_Request {
       return 0;
     }
     else {
-      std::cout << "The parser failed" << std::endl;
+      std::cerr << "request parsing fail" << std::endl;
       return -1;
     }
   }
