@@ -1,4 +1,5 @@
 #include <stdlib.h>
+
 #include <list>
 #include <unordered_map>
 
@@ -35,7 +36,7 @@ class Cache {
       it->second->second = value;
       // Move this entry to the front of the cache
       cache.splice(cache.begin(), cache, it->second);
-      return NULL;
+      return "";
     }
 
     // Reached the capacity, remove the oldest entry

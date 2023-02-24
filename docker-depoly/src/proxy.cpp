@@ -88,15 +88,20 @@ void proxyListen() {
 //异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
-
-  // std::string Line = recvAll(Proxy_instance->return_socket_des());
-  std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-  std::string Line = char_to_string(line_send);
-  //std::cout << "Line received is " << Line << std::endl;
-  Proxy_instance->setRequest(Line, line_send);
-  Proxy_instance->judgeRequest();
+  try {
+    // std::string Line = recvAll(Proxy_instance->return_socket_des());
+    std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
+    std::string Line = char_to_string(line_send);
+    //std::cout << "Line received is " << Line << std::endl;
+    Proxy_instance->setRequest(Line, line_send);
+    Proxy_instance->judgeRequest();
+    delete Proxy_instance;
+  }
+  catch (std::exception & e) {
+    delete Proxy_instance;
+    std::cerr << e.what() << std::endl;
+  }
   // Proxy_instance->destructProxy();
-  delete Proxy_instance;
   return NULL;
 }
 
@@ -279,6 +284,13 @@ void Proxy::proxyGET() {
     //no response in cache
     int socket_server = connectServer();
     response_instance = proxyFetch(socket_server, socket_client);
+    if (response_instance->return_statuscode() == 200) {
+      //if the response is 200 we need to cache it
+      std::string removed_node = this->cache->put(request_url, response_instance);
+      if (removed_node.size() != 0) {
+        //There is a node being removed, need to log
+      }
+    }
   }
   //if not
   //
@@ -288,6 +300,12 @@ void Proxy::proxyGET() {
 }
 
 http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
+  /**
+ * Get the request, and send to the server
+ * Get the response from the server
+ * Send the response back to the client
+ * return the parsed response object pointer
+*/
   std::vector<char> send_request = request->return_line_send();
   http_Response * r1 = NULL;
   if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
