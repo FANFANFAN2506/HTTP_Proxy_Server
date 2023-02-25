@@ -12,7 +12,18 @@
 #define MAXCachingCapacity 100
 long requestID = 0;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
-//std::thread, 503, get chunk, get, cache lock
+pthread_mutex_t cacheLock = PTHREAD_MUTEX_INITIALIZER;
+/**
+ * 1. std::thread 问了，等回复
+ * 2. 502 error: 方法写好了，还没添加到各部分的接受response阶段，error是不是直接退thread更方便
+ * 3. cache lock 记得加
+ * 4. 一些ico的 parse error问题
+ * 5. cache expire： 一些Expire和Max-age为空的情况怎么办, receivedTime肯定不为0，对于一些网站，Expire 为 -1, Max-age 为 0 
+ *   （每次都要重请求的意思，这里我直接算特殊case return掉了），在Response里俩都被初始化成0了，所以会出现Max-age为空的网站还要重请求的情况。
+ * 6. cache valid 
+ * 7. cache update 写好了，在put的时候会直接update，但是记得要log
+ * 8. no-store 的解析问题
+*/
 void proxyListen() {
   int status;
   int socket_fd;
@@ -320,6 +331,10 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   http_Response * r1 = NULL;
   if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
     std::vector<char> input = recvChar(socket_server);
+    if (check502(input)){
+      proxyERROR(502);
+      pthread_exit(0);
+    }
     if (chunkHandle(input, socket_server)) {
       return NULL;
     }
@@ -360,8 +375,9 @@ void Proxy::proxyERROR(int code) {
       resp = "HTTP/1.1 502 Bad Gateway\r\n\r\n";
       break;
   }
+  string logLine = resp;
   send(client_fd, resp, strlen(resp), 0);
-  log(std::string(to_string(uid) + ": Responding \"" + resp + "\" \n"));
+  log(std::string(to_string(uid) + ": Responding \"" + logLine.substr(0,logLine.size()-4) + "\"\n"));
   close(client_fd);
 }
 
@@ -373,17 +389,16 @@ bool Proxy::chunkHandle(vector<char> input, int server_fd) {
   send(socket_des, &input.data()[0], input.size(), 0);
   while (1) {
     vector<char> chunkMsg = recvChar(server_fd);
-    std::cout << chunkMsg.size() << std::endl;
     if (chunkMsg.size() <= 0) {
       break;
     }
     send(socket_des, &chunkMsg.data()[0], chunkMsg.size(), 0);
   }
-  std::cout << "!!!!!!!!!!!!!!!" << std::endl;
   return true;
 }
-bool Proxy::check502() {
-  if (response->return_response().find("\r\n\r\n") == std::string::npos) {
+bool Proxy::check502(vector<char> input) {
+  std::string str = char_to_string(input);
+  if (str.find("\r\n\r\n") == std::string::npos) {
     return false;
   }
   return true;

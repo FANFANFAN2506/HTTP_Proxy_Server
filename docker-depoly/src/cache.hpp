@@ -30,10 +30,11 @@ class Cache {
 
   string put(string url, http_Response * value) {
     const auto it = map.find(url);
-    string ans;
+    string ans = "";
     // Key already exists
     if (it != map.cend()) {
       // Update the value
+      delete it->second->second;
       it->second->second = value;
       // Move this entry to the front of the cache
       respList.splice(respList.begin(), respList, it->second);
@@ -52,5 +53,29 @@ class Cache {
     respList.emplace_front(url, value);
     map[url] = respList.begin();
     return ans;
+  }
+
+  /**
+   * Input: URI of the website
+   * Output: True: expired, need update, False: not expire, no update needed.
+  */
+  bool checkExpire(string url){
+    const auto it = map.find(url);
+    if (it != map.cend()){
+      http_Response * resp = (it->second->second);
+      time_t maxAge = resp->return_max();
+      time_t expireTime  = resp->return_expire();
+      time_t receivedTime = resp->return_date();
+      time_t currTime;
+      time(&currTime);
+      if(maxAge==0||expireTime==(time_t)-1){
+        return true;
+      }
+      if(currTime > maxAge+receivedTime || currTime > expireTime){
+        return true;
+      }
+      return false;
+    }
+    return true;
   }
 };
