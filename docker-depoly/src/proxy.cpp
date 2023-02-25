@@ -12,7 +12,7 @@
 #define MAXCachingCapacity 100
 long requestID = 0;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
-
+//std::thread, 503, get chunk, get, cache lock
 void proxyListen() {
   int status;
   int socket_fd;
@@ -86,7 +86,6 @@ void proxyListen() {
   return;
 }
 
-//异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   try {
@@ -361,4 +360,11 @@ void Proxy::proxyERROR(int code) {
   send(client_fd, resp, strlen(resp), 0);
   log(std::string(to_string(uid) + ": Responding \"" + resp + "\" \n"));
   close(client_fd);
+}
+
+bool Proxy::check502(){
+  if (response->return_response().find("\r\n\r\n")==std::string::npos){
+    return false;
+  }
+  return true;
 }
