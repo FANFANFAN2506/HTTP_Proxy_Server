@@ -331,7 +331,7 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   http_Response * r1 = NULL;
   if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
     std::vector<char> input = recvChar(socket_server);
-    if (check502(input)){
+    if (check502(input)) {
       proxyERROR(502);
       pthread_exit(0);
     }
@@ -377,7 +377,8 @@ void Proxy::proxyERROR(int code) {
   }
   string logLine = resp;
   send(client_fd, resp, strlen(resp), 0);
-  log(std::string(to_string(uid) + ": Responding \"" + logLine.substr(0,logLine.size()-4) + "\"\n"));
+  log(std::string(to_string(uid) + ": Responding \"" +
+                  logLine.substr(0, logLine.size() - 4) + "\"\n"));
   close(client_fd);
 }
 
