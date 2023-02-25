@@ -57,7 +57,7 @@ class Cache {
 
   /**
    * Input: URI of the website
-   * Output: True: expired, need update, False: not expire, no update needed.
+   * Output: True: expired or not find, need update, False: not expire, no update needed.
   */
   bool checkExpire(string url){
     const auto it = map.find(url);
@@ -68,10 +68,10 @@ class Cache {
       time_t receivedTime = resp->return_date();
       time_t currTime;
       time(&currTime);
-      if(maxAge==0||expireTime==(time_t)-1){
-        return true;
+      if(maxAge == -1 && currTime < expireTime){
+        return false;
       }
-      if(currTime > maxAge+receivedTime || currTime > expireTime){
+      if(currTime - receivedTime > maxAge || currTime > expireTime){
         return true;
       }
       return false;

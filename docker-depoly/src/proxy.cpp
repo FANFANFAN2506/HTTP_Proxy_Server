@@ -399,7 +399,7 @@ bool Proxy::chunkHandle(vector<char> input, int server_fd) {
 bool Proxy::check502(vector<char> input) {
   std::string str = char_to_string(input);
   if (str.find("\r\n\r\n") == std::string::npos) {
-    return false;
+    return true;
   }
-  return true;
+  return false;
 }
