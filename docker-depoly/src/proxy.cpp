@@ -89,19 +89,19 @@ void proxyListen() {
 //异常处理(对于一些不存在的域名，不需要pending)，跨方法 log, Response 解析
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
-  // try {
-  // std::string Line = recvAll(Proxy_instance->return_socket_des());
-  std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-  std::string Line = char_to_string(line_send);
-  //std::cout << "Line received is " << Line << std::endl;
-  Proxy_instance->setRequest(Line, line_send);
-  Proxy_instance->judgeRequest();
-  delete Proxy_instance;
-  // }
-  // catch (std::exception & e) {
-  //   delete Proxy_instance;
-  //   std::cerr << e.what() << std::endl;
-  // }
+  try {
+    // std::string Line = recvAll(Proxy_instance->return_socket_des());
+    std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
+    std::string Line = char_to_string(line_send);
+    //std::cout << "Line received is " << Line << std::endl;
+    Proxy_instance->setRequest(Line, line_send);
+    Proxy_instance->judgeRequest();
+    delete Proxy_instance;
+  }
+  catch (std::exception & e) {
+    delete Proxy_instance;
+    std::cerr << e.what() << std::endl;
+  }
   // Proxy_instance->destructProxy();
   return NULL;
 }

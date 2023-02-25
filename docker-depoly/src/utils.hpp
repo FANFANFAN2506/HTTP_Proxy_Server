@@ -38,10 +38,6 @@ std::vector<char> recvChar(int client_fd) {
     start += data_rec;
   }
   data_buff.resize(total);
-<<<<<<< HEAD
-  // std::cout << "data_buff is:" << total << std::endl;
-=======
->>>>>>> 2aa5ff6cd66f23b4e3a2eb419712fee69462af5f
   return data_buff;
 }
 
