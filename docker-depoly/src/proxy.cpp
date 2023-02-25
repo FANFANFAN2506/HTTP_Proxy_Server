@@ -359,5 +359,6 @@ void Proxy::proxyERROR(int code) {
       break;
   }
   send(client_fd, resp, strlen(resp), 0);
+  log(std::string(to_string(uid) + ": Responding \"" + resp + "\" \n");
   close(client_fd);
 }
