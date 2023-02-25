@@ -20,9 +20,13 @@ std::string char_to_string(std::vector<char> vc) {
 }
 
 std::vector<char> recvChar(int client_fd) {
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
+  setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
   int data_rec;
   int total = 0;
-  int increment = 65535;
+  int increment = 20480;
   int start = 0;
   std::vector<char> data_buff(increment, 0);
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {

@@ -118,7 +118,7 @@ void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
   error = request->constructRequest();
   if (error == -1) {
     delete request;
-    //std::cerr << "Request construction failed" << std::endl;
+    std::cerr << "Request construction failed" << std::endl;
     log(std::string(to_string(uid) + ": ERROR request construction failed \n"));
     proxyERROR(400);
     pthread_exit(0);
@@ -281,7 +281,7 @@ void Proxy::proxyGET() {
   http_Response * response_instance = this->cache->get(request_url);
   if (response_instance == NULL) {
     //no response in cache
-    log(std::string(to_string(uid) + "not in cache\n"));
+    log(std::string(to_string(uid) + ": not in cache\n"));
     int socket_server = connectServer();
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
@@ -299,7 +299,7 @@ void Proxy::proxyGET() {
     //Expiration function
     //Need validation function
     //Valid
-    log(std::string(to_string(uid) + "in cache, valid\n"));
+    log(std::string(to_string(uid) + ": in cache, valid\n"));
     std::vector<char> reply = response_instance->return_line_recv();
     send(socket_client, &reply.data()[0], reply.size(), 0);
   }
@@ -321,6 +321,9 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   http_Response * r1 = NULL;
   if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
     std::vector<char> input = recvChar(socket_server);
+    if (chunkHandle(input, socket_server)) {
+      return NULL;
+    }
     if (input.size() != 0) {
       if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
         std::string reply = char_to_string(input);
@@ -360,4 +363,28 @@ void Proxy::proxyERROR(int code) {
   }
   send(client_fd, resp, strlen(resp), 0);
   close(client_fd);
+}
+
+bool Proxy::chunkHandle(vector<char> input, int server_fd) {
+  std::string str = char_to_string(input);
+  if (str.find("Transfer-Encoding: chunked") == std::string::npos) {
+    return false;
+  }
+  send(socket_des, &input.data()[0], input.size(), 0);
+  while (1) {
+    vector<char> chunkMsg = recvChar(server_fd);
+    std::cout << chunkMsg.size() << std::endl;
+    if (chunkMsg.size() <= 0) {
+      break;
+    }
+    send(socket_des, &chunkMsg.data()[0], chunkMsg.size(), 0);
+  }
+  std::cout << "!!!!!!!!!!!!!!!" << std::endl;
+  return true;
+}
+bool Proxy::check502() {
+  if (response->return_response().find("\r\n\r\n") == std::string::npos) {
+    return false;
+  }
+  return true;
 }

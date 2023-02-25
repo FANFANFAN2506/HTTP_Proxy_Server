@@ -48,6 +48,8 @@ class Proxy {
   void proxyGET();
   http_Response * proxyFetch(int socket_server, int socket_client);
   void proxyERROR(int code);
+  bool chunkHandle(vector<char> input, int server_fd);
+  bool check502();
   void destructProxy() {
     if (request) {
       delete request;
