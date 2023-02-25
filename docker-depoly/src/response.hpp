@@ -24,6 +24,8 @@ class http_Response {
   time_t EXPIRES;
   time_t Lastmodified;
   int max_age;
+  bool
+      no_store;  //if 1, cannot cache(there is "no-store"), if 0 can cache(there is "no-cache" also set to 0)
 
  public:
   http_Response() :
@@ -38,7 +40,8 @@ class http_Response {
       Date(),
       EXPIRES(),
       Lastmodified(),
-      max_age() {}
+      max_age(),
+      no_store() {}
   http_Response(int sd, std::string l, std::vector<char> lr) :
       socket_server(sd),
       Line(l),
@@ -51,7 +54,8 @@ class http_Response {
       Date(0),
       EXPIRES(0),
       Lastmodified(0),
-      max_age(0) {
+      max_age(-1),
+      no_store(false) {
     //Get the http_ver,status,statuscode
     //get cache_Control expires
   }
@@ -112,6 +116,14 @@ class http_Response {
             max_age_end = max_age_whole.find("\r\n");
           }
           max_age = stoi(max_age_whole.substr(0, max_age_end));
+        }
+        size_t no_store_start = cache_ctrl.find("no-store");
+        if (no_store_start != std::string::npos) {
+          no_store = true;
+        }
+        size_t no_cache_start = cache_ctrl.find("no-cache");
+        if (no_cache_start != std::string::npos) {
+          no_store = false;
         }
       }
       else if (it->name == "Expires") {
