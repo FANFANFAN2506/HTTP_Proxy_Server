@@ -13,6 +13,7 @@
 long requestID = 0;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t cacheLock = PTHREAD_MUTEX_INITIALIZER;
+Cache * myCache = new Cache(MAXCachingCapacity);
 /**
  * 1. std::thread 问了，等回复
  * 2. 502 error: 方法写好了，还没添加到各部分的接受response阶段，error是不是直接退thread更方便
@@ -87,7 +88,6 @@ void proxyListen() {
       string ip = inet_ntoa(socket_addr.sin_addr);
       pthread_t thread;
       //This pointer may need to be considered for RAII0
-      Cache * myCache = new Cache(MAXCachingCapacity);
       Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip, myCache);
       pthread_create(&thread, NULL, runProxy, myProxy);
       //pthread_join(thread,NULL);
@@ -103,7 +103,7 @@ void * runProxy(void * myProxy) {
     // std::string Line = recvAll(Proxy_instance->return_socket_des());
     std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
     std::string Line = char_to_string(line_send);
-    //std::cout << "Line received is " << Line << std::endl;
+    std::cout << "\n ------Line received is \n  " << Line << std::endl;
     Proxy_instance->setRequest(Line, line_send);
     Proxy_instance->judgeRequest();
     delete Proxy_instance;
@@ -288,7 +288,7 @@ void Proxy::proxyGET() {
   std::string request_url = request->return_uri();
   //search from the cache
   std::cout << "the request url is " << request_url << std::endl;
-  http_Response * response_instance = this->cache->get(request_url);
+  http_Response * response_instance = myCache->get(request_url);
   if (response_instance == NULL) {
     //no response in cache
     std::cout << "not in cache" << std::endl;
@@ -297,7 +297,8 @@ void Proxy::proxyGET() {
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
-      std::string removed_node = this->cache->put(request_url, response_instance);
+      std::string removed_node = myCache->put(request_url, response_instance);
+      //std::cout << "@@@@@" <<cache->get(request_url)->return_response() << std::endl;
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
         log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
