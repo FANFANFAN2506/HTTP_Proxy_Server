@@ -104,11 +104,12 @@ class http_Request {
       if (getHostIp(parsed_request) < 0) {
         return -1;
       }
-      // uri = Host_name + Host_port + uri;
+      uri = Host_name + Host_port + uri;
       // }
       return 0;
     }
     else {
+      std::cerr << "Request parser fail" << std::endl;
       return -1;
     }
   }

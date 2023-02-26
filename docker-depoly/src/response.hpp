@@ -80,11 +80,13 @@ class http_Response {
     return sstream.str();
   }
 
-  int parseResponse() {
+  int parseResponse(std::vector<char> & lr) {
     httpparser::Response parsed_response;
     httpparser::HttpResponseParser parser;
-    httpparser::HttpResponseParser::ParseResult result = parser.parse(
-        parsed_response, &line_recv.data()[0], &line_recv.data()[0] + line_recv.size());
+    // httpparser::HttpResponseParser::ParseResult result = parser.parse(
+    //     parsed_response, &line_recv.data()[0], &line_recv.data()[0] + line_recv.size());
+    httpparser::HttpResponseParser::ParseResult result =
+        parser.parse(parsed_response, &lr.data()[0], &lr.data()[0] + line_recv.size());
     if (result == httpparser::HttpResponseParser::ParsingCompleted) {
       status = parsed_response.status;
       statusCode = parsed_response.statusCode;

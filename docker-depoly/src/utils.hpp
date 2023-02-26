@@ -9,14 +9,15 @@
 #include <iostream>
 #include <vector>
 
-std::string char_to_string(std::vector<char> vc) {
-  std::string request;
-  for (size_t i = 0; i < vc.size(); i++) {
-    //std::cout << vc[i];
-    request += vc[i];
-  }
-  //std::cout << std::endl;
-  return request;
+std::vector<char> recvBuff(int client_fd) {
+  std::vector<char> data_buff(65536, 0);
+  int data_rec = 0;
+  data_rec = recv(client_fd, &data_buff.data()[0], 65536, 0);
+  std::cout << "recevied length is:" << data_rec << std::endl;
+  data_buff.resize(data_rec);
+  std::string response_test(data_buff.begin(), data_buff.end());
+  std::cout << "Received line is :" << response_test << std::endl;
+  return data_buff;
 }
 
 std::vector<char> recvChar(int client_fd) {
@@ -24,7 +25,7 @@ std::vector<char> recvChar(int client_fd) {
   tv.tv_sec = 1;
   tv.tv_usec = 0;
   setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
-  int data_rec;
+  int data_rec = 0;
   int total = 0;
   int increment = 20480;
   int start = 0;
@@ -43,18 +44,6 @@ std::vector<char> recvChar(int client_fd) {
   }
   data_buff.resize(total);
   return data_buff;
-}
-
-std::string recvAll(int client_fd) {
-  std::vector<char> data_buff = recvChar(client_fd);
-  if (data_buff.size() == 0) {
-    return "";
-  }
-  std::string request;
-  for (size_t i = 0; i < data_buff.size(); i++) {
-    request += data_buff[i];
-  }
-  return request;
 }
 
 std::string parseTime(time_t time) {

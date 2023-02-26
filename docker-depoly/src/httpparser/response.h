@@ -6,22 +6,18 @@
 #ifndef HTTPPARSER_RESPONSE_H
 #define HTTPPARSER_RESPONSE_H
 
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
-namespace httpparser
-{
+namespace httpparser {
 
-struct Response {
-    Response()
-        : versionMajor(0), versionMinor(0), keepAlive(false), statusCode(0)
-    {}
-    
-    struct HeaderItem
-    {
-        std::string name;
-        std::string value;
+  struct Response {
+    Response() : versionMajor(0), versionMinor(0), keepAlive(false), statusCode(0) {}
+
+    struct HeaderItem {
+      std::string name;
+      std::string value;
     };
 
     int versionMajor;
@@ -29,29 +25,27 @@ struct Response {
     std::vector<HeaderItem> headers;
     std::vector<char> content;
     bool keepAlive;
-    
+
     unsigned int statusCode;
     std::string status;
 
-    std::string inspect() const
-    {
-        std::stringstream stream;
-        stream << "HTTP/" << versionMajor << "." << versionMinor
-               << " " << statusCode << " " << status << "\n";
+    std::string inspect() const {
+      std::stringstream stream;
+      stream << "HTTP/" << versionMajor << "." << versionMinor << " " << statusCode << " "
+             << status << "\n";
 
-        for(std::vector<Response::HeaderItem>::const_iterator it = headers.begin();
-            it != headers.end(); ++it)
-        {
-            stream << it->name << ": " << it->value << "\n";
-        }
+      for (std::vector<Response::HeaderItem>::const_iterator it = headers.begin();
+           it != headers.end();
+           ++it) {
+        stream << it->name << ": " << it->value << "\n";
+      }
 
-        std::string data(content.begin(), content.end());
-        stream << data << "\n";
-        return stream.str();
+      std::string data(content.begin(), content.end());
+      stream << data << "\n";
+      return stream.str();
     }
-};
+  };
 
-} // namespace httpparser
+}  // namespace httpparser
 
-#endif // HTTPPARSER_RESPONSE_H
-
+#endif  // HTTPPARSER_RESPONSE_H

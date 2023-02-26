@@ -100,9 +100,9 @@ void proxyListen() {
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   try {
-    // std::string Line = recvAll(Proxy_instance->return_socket_des());
     std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-    std::string Line = char_to_string(line_send);
+    // std::vector<char> line_send = recvBuff(Proxy_instance->return_socket_des());
+    std::string Line(line_send.begin(), line_send.end());
     //std::cout << "Line received is " << Line << std::endl;
     Proxy_instance->setRequest(Line, line_send);
     Proxy_instance->judgeRequest();
@@ -240,6 +240,7 @@ void Proxy::proxyCONNECT() {
       if (FD_ISSET(i, &listen_ports)) {
         //There is a message received
         std::vector<char> data_buff = recvChar(i);
+        // std::vector<char> data_buff = recvBuff(i);
         if (data_buff.size() == 0) {
           //One of the socket closed on there side
           close(socket_server);
@@ -346,6 +347,9 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   http_Response * r1 = NULL;
   if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
     std::vector<char> input = recvChar(socket_server);
+    // std::vector<char> input = recvBuff(socket_server);
+    std::string response_test(input.begin(), input.end());
+    std::cout << "response test is :" << response_test << std::endl;
     if (check502(input)) {
       proxyERROR(502);
       pthread_exit(0);
@@ -355,9 +359,9 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
     }
     if (input.size() != 0) {
       if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
-        std::string reply = char_to_string(input);
+        std::string reply(input.begin(), input.end());
         r1 = new http_Response(socket_server, reply, input);
-        int error = r1->parseResponse();
+        int error = r1->parseResponse(input);
         if (error == -1) {
           //error in constructing Reponse;
           //502 error code
@@ -397,14 +401,14 @@ void Proxy::proxyERROR(int code) {
   close(client_fd);
 }
 
-bool Proxy::chunkHandle(vector<char> input, int server_fd) {
-  std::string str = char_to_string(input);
-  if (str.find("Transfer-Encoding: chunked") == std::string::npos) {
+bool Proxy::chunkHandle(std::vector<char> input, int server_fd) {
+  std::string str(input.begin(), input.end());
+  if (str.find("chunked") == std::string::npos) {
     return false;
   }
   send(socket_des, &input.data()[0], input.size(), 0);
   while (1) {
-    vector<char> chunkMsg = recvChar(server_fd);
+    std::vector<char> chunkMsg = recvChar(server_fd);
     if (chunkMsg.size() <= 0) {
       break;
     }
@@ -414,7 +418,7 @@ bool Proxy::chunkHandle(vector<char> input, int server_fd) {
 }
 
 bool Proxy::check502(vector<char> input) {
-  std::string str = char_to_string(input);
+  std::string str(input.begin(), input.end());
   if (str.find("\r\n\r\n") == std::string::npos) {
     return true;
   }
@@ -458,9 +462,9 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   send(socket_server, &revalid_request.data()[0], revalid_request.size(), 0);
   //reply with the new response
   std::vector<char> reply = recvChar(socket_server);
-  std::string reply_str = char_to_string(reply);
+  std::string reply_str(reply.begin(), reply.end());
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);
-  int error = new_response->parseResponse();
+  int error = new_response->parseResponse(reply);
   if (error == -1) {
     //error in constructing Reponse;
     //502 error code
@@ -485,4 +489,23 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   }
   close(socket_server);
   close(socket_client);
+}
+
+int Proxy::sendall(int s, char * buf, int * len) {
+  int total = 0;         // how many bytes we've sent
+  int bytesleft = *len;  // how many we have left to send
+  int n;
+
+  while (total < *len) {
+    n = send(s, buf + total, bytesleft, 0);
+    if (n == -1) {
+      break;
+    }
+    total += n;
+    bytesleft -= n;
+  }
+
+  *len = total;  // return number actually sent here
+
+  return n == -1 ? -1 : 0;  // return -1 on failure, 0 on success
 }
