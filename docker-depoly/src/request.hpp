@@ -29,6 +29,7 @@ class http_Request {
   std::string Host_port;  //Target server port
   std::string requestLine;
   std::vector<char> line_send;
+  bool no_cache;
   time_t TIME;
 
  public:
@@ -45,6 +46,7 @@ class http_Request {
       Host_name(),
       Host_port(),
       line_send(),
+      no_cache(),
       TIME() {}
   http_Request(int sd, std::string l, std::vector<char> & ls, std::string ip, time_t t) :
       socket_des(sd),
@@ -58,6 +60,7 @@ class http_Request {
       Host_name(),
       Host_port(),
       line_send(ls),
+      no_cache(false),
       TIME(t) {
     //Get uri and method
   }
@@ -74,6 +77,7 @@ class http_Request {
   std::string return_port() const { return Host_port; }
   std::vector<char> return_line_send() const { return line_send; }
   time_t return_time() const { return TIME; }
+  bool return_no_cache() const { return no_cache; }
   int constructRequest() {
     int er1;
     er1 = parseRequest();
@@ -100,7 +104,7 @@ class http_Request {
       if (getHostIp(parsed_request) < 0) {
         return -1;
       }
-      uri = Host_name + Host_port + uri;
+      // uri = Host_name + Host_port + uri;
       // }
       return 0;
     }
@@ -127,6 +131,13 @@ class http_Request {
           Host_port = "80";
         }
         return 0;
+      }
+      else if (it->name == "Cache-Control") {
+        std::string cache_ctrl = it->value;
+        size_t no_cache_start = cache_ctrl.find("no-cache");
+        if (no_cache_start != std::string::npos) {
+          no_cache = true;
+        }
       }
     }
     return -1;

@@ -26,6 +26,7 @@ class http_Response {
   int max_age;
   bool
       no_store;  //if 1, cannot cache(there is "no-store"), if 0 can cache(there is "no-cache" also set to 0)
+  bool if_chunk;
 
  public:
   http_Response() :
@@ -41,7 +42,8 @@ class http_Response {
       EXPIRES(),
       Lastmodified(),
       max_age(),
-      no_store() {}
+      no_store(),
+      if_chunk() {}
   http_Response(int sd, std::string l, std::vector<char> lr) :
       socket_server(sd),
       Line(l),
@@ -55,7 +57,8 @@ class http_Response {
       EXPIRES(0),
       Lastmodified(0),
       max_age(-1),
-      no_store(false) {
+      no_store(false),
+      if_chunk(false) {
     //Get the http_ver,status,statuscode
     //get cache_Control expires
   }
@@ -137,6 +140,13 @@ class http_Response {
       }
       else if (it->name == "ETag") {
         etags = it->value;
+      }
+      else if (it->name == "Transfer-Encoding") {
+        std::string encoding = it->value;
+        size_t chunked_start = encoding.find("chunked");
+        if (chunked_start != std::string::npos) {
+          if_chunk = true;
+        }
       }
     }
     return 0;

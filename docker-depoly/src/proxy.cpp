@@ -284,13 +284,14 @@ void Proxy::proxyGET() {
    * 4. If good: send cached response back
    *    else: send the request, and get response update and reply with the response
   */
-  int socket_server = 0;
   int socket_client = socket_des;
   std::string request_url = request->return_uri();
   //search from the cache
+  std::cout << "the request url is " << request_url << std::endl;
   http_Response * response_instance = this->cache->get(request_url);
   if (response_instance == NULL) {
     //no response in cache
+    std::cout << "not in cache" << std::endl;
     log(std::string(to_string(uid) + ": not in cache\n"));
     int socket_server = connectServer();
     response_instance = proxyFetch(socket_server, socket_client);
@@ -306,20 +307,34 @@ void Proxy::proxyGET() {
   }
   else {
     //If we find this in the cache;
+    std::cout << "Find in cache" << std::endl;
     //Expiration function
-    //Need validation function
-    //Valid
-    log(std::string(to_string(uid) + ": in cache, valid\n"));
-    std::vector<char> reply = response_instance->return_line_recv();
-    send(socket_client, &reply.data()[0], reply.size(), 0);
+    bool if_expire = cache->checkExpire(request_url);
+    if (if_expire) {
+      //Expired cached, need update
+      HandleValidation(response_instance, request_url);
+      return;
+    }
+    else {
+      //Valid, but need validation
+      bool if_no_cache = request->return_no_cache();
+      if (if_no_cache) {
+        //must validation
+        HandleValidation(response_instance, request_url);
+        return;
+      }
+      else {
+        //no validation required by request, send it back
+        log(std::string(to_string(uid) + ": in cache, valid\n"));
+        std::vector<char> reply = response_instance->return_line_recv();
+        send(socket_client, &reply.data()[0], reply.size(), 0);
+        close(socket_client);
+        return;
+      }
+    }
   }
-  //
-  if (socket_server) {
-    close(socket_server);
-  }
-  close(socket_client);
-  return;
 }
+
 http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   /**
  * Get the request, and send to the server
@@ -410,4 +425,70 @@ bool Proxy::check502(vector<char> input) {
     return true;
   }
   return false;
+}
+
+std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) {
+  std::string request_line = request->return_request();
+  request_line.append("\r\n");
+  time_t last_modified = response_instance->return_last();
+  if (last_modified != 0) {
+    request_line += "If-Modified-Since: ";
+    request_line += parseTime(last_modified);
+    request_line += "\r\n";
+  }
+  std::string etags_response = response->return_etags();
+  if (etags_response.size() != 0) {
+    request_line += "If-None-Match: ";
+    request_line += etags_response;
+    request_line += "\r\n";
+  }
+  request_line += "\r\n";
+  if (last_modified != 0 || etags_response.size() != 0) {
+    std::vector<char> reply(request_line.begin(), request_line.end());
+    return reply;
+  }
+  else {
+    //shouldn't miss two fields
+    std::vector<char> reply;
+    return reply;
+  }
+}
+
+void Proxy::HandleValidation(http_Response * response_instance, std::string request_url) {
+  int socket_client = socket_des;
+  log(std::string(to_string(uid) + ": in cache, but expired at " +
+                  parseTime(response_instance->return_expire()) + "\n"));
+  //resend the request, cache update
+  int socket_server = connectServer();
+  std::vector<char> revalid_request = ConstructValidation(response_instance);
+  send(socket_server, &revalid_request.data()[0], revalid_request.size(), 0);
+  //reply with the new response
+  std::vector<char> reply = recvChar(socket_server);
+  std::string reply_str = char_to_string(reply);
+  http_Response * new_response = new http_Response(socket_server, reply_str, reply);
+  int error = new_response->parseResponse();
+  if (error == -1) {
+    //error in constructing Reponse;
+    //502 error code
+    std::cerr << "Reponse parsing fail" << std::endl;
+  }
+  else {
+    log(std::string(to_string(uid) + ": Responding \"" + new_response->return_response() +
+                    "\"\n"));
+    if (new_response->return_statuscode() == 200) {
+      //update and return to client
+      std::string removed_url = cache->put(request_url, new_response);
+      if (removed_url.size() != 0) {
+        log(std::string("(no-id): NOTE evicted" + removed_url + "from cache"));
+      }
+      send(socket_client, &reply.data()[0], reply.size(), 0);
+    }
+    else if (new_response->return_statuscode() == 304) {
+      //not modified return the cached response
+      std::vector<char> cached_response = response_instance->return_line_recv();
+      send(socket_client, &cached_response.data()[0], cached_response.size(), 0);
+    }
+  }
+  close(socket_server);
+  close(socket_client);
 }
