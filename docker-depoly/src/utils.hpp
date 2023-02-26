@@ -13,10 +13,7 @@ std::vector<char> recvBuff(int client_fd) {
   std::vector<char> data_buff(65536, 0);
   int data_rec = 0;
   data_rec = recv(client_fd, &data_buff.data()[0], 65536, 0);
-  // std::cout << "recevied length is:" << data_rec << std::endl;
   data_buff.resize(data_rec);
-  std::string response_test(data_buff.begin(), data_buff.end());
-  // std::cout << "Received line is :" << response_test << std::endl;
   return data_buff;
 }
 

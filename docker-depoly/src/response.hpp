@@ -20,9 +20,9 @@ class http_Response {
   std::string status;
   std::string cache_ctrl;
   std::string etags;
+  std::string last_str;
   time_t Date;
   time_t EXPIRES;
-  time_t Lastmodified;
   int max_age;
   bool
       no_store;  //if 1, cannot cache(there is "no-store"), if 0 can cache(there is "no-cache" also set to 0)
@@ -38,9 +38,9 @@ class http_Response {
       status(),
       cache_ctrl(),
       etags(),
+      last_str(),
       Date(),
       EXPIRES(),
-      Lastmodified(),
       max_age(),
       no_store(),
       if_chunk() {}
@@ -53,9 +53,9 @@ class http_Response {
       status(),
       cache_ctrl(""),
       etags(""),
+      last_str(""),
       Date(0),
       EXPIRES(0),
-      Lastmodified(0),
       max_age(-1),
       no_store(false),
       if_chunk(false) {
@@ -70,9 +70,9 @@ class http_Response {
   std::string return_status() const { return status; }
   std::string return_cache_ctrl() const { return cache_ctrl; }
   std::string return_etags() const { return etags; }
+  std::string return_last_str() const { return last_str; }
   time_t return_date() const { return Date; }
   time_t return_expire() const { return EXPIRES; }
-  time_t return_last() const { return Lastmodified; }
   int return_max() const { return max_age; }
   std::string return_response() const {
     std::stringstream sstream;
@@ -94,10 +94,7 @@ class http_Response {
       sstream << "HTTP/" << parsed_response.versionMajor << "."
               << parsed_response.versionMinor;
       http_ver = sstream.str();
-      int error = get_cache_expire(parsed_response);
-      if (error == -1) {
-        return -1;
-      }
+      get_cache_expire(parsed_response);
       return 0;
     }
     else {
@@ -137,7 +134,7 @@ class http_Response {
         Date = stringTotime(it->value);
       }
       else if (it->name == "Last-Modified") {
-        Lastmodified = stringTotime(it->value);
+        last_str = it->value;
       }
       else if (it->name == "ETag") {
         etags = it->value;

@@ -29,6 +29,7 @@ Cache * myCache = new Cache(MAXCachingCapacity);
 
 /**
  * Reference from Beej's tutorial
+ * https://beej.us/guide/bgnet/html//index.html
 */
 void proxyListen() {
   int status;
@@ -105,20 +106,20 @@ void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   try {
     // std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-    std::vector<char> line_send = recvBuff(Proxy_instance->return_socket_des());
-    std::string Line(line_send.begin(), line_send.end());
-    // std::vector<char> data_buff(65536, 0);
-    // int data_rec = 0;
-    // data_rec = recv(Proxy_instance->return_socket_des(), &data_buff.data()[0], 65536, 0);
-    // if (data_rec <= 0) {
-    //   std::cerr << "cannot receive request" << std::endl;
-    //   throw std::exception();
-    // }
-    // // std::cout << "recevied length is:" << data_rec << std::endl;
-    // data_buff.resize(data_rec);
-    // std::string Line(data_buff.begin(), data_buff.end());
+    // std::vector<char> line_send = recvBuff(Proxy_instance->return_socket_des());
+    // std::string Line(line_send.begin(), line_send.end());
+    std::vector<char> data_buff(65536, 0);
+    int data_rec = 0;
+    data_rec = recv(Proxy_instance->return_socket_des(), &data_buff.data()[0], 65536, 0);
+    if (data_rec <= 0) {
+      std::cerr << "cannot receive request" << std::endl;
+      throw std::exception();
+    }
+    // std::cout << "recevied length is:" << data_rec << std::endl;
+    data_buff.resize(data_rec);
+    std::string Line(data_buff.begin(), data_buff.end());
     // std::cout << "Request is " << Line << std::endl;
-    Proxy_instance->setRequest(Line, line_send);
+    Proxy_instance->setRequest(Line, data_buff);
     Proxy_instance->judgeRequest();
     delete Proxy_instance;
   }
@@ -175,6 +176,7 @@ void Proxy::judgeRequest() {
     return;
   }
   else if (request->return_method() == "GET") {
+    std::cout << "get request" << std::endl;
     proxyGET();
     return;
   }
@@ -306,7 +308,9 @@ void Proxy::proxyGET() {
   std::string request_url = request->return_uri();
   //search from the cache
   std::cout << "the request url is " << request_url << std::endl;
+  pthread_mutex_lock(&cacheLock);
   http_Response * response_instance = myCache->get(request_url);
+  pthread_mutex_unlock(&cacheLock);
   if (response_instance == NULL) {
     //no response in cache
     std::cout << "not in cache" << std::endl;
@@ -316,7 +320,9 @@ void Proxy::proxyGET() {
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
+      pthread_mutex_lock(&cacheLock);
       std::string removed_node = myCache->put(request_url, response_instance);
+      pthread_mutex_unlock(&cacheLock);
       //std::cout << "@@@@@" <<cache->get(request_url)->return_response() << std::endl;
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
@@ -332,8 +338,9 @@ void Proxy::proxyGET() {
     bool if_expire = cache->checkExpire(request_url);
     if (if_expire) {
       //Expired cached, need update
-      std::cout << "cache expired"
-                << "etags is " << response_instance->return_etags() << std::endl;
+      std::cout << "expire cache" << std::endl;
+      log(std::string(to_string(uid) + ": in cache, but expired at " +
+                      parseTime(response_instance->return_expire()) + "\n"));
       HandleValidation(response_instance, request_url);
       return;
     }
@@ -472,22 +479,24 @@ bool Proxy::check502(vector<char> & input) {
 std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) {
   std::string request_line = request->return_request();
   request_line.append("\r\n");
-  assert(response_instance != NULL);
-  time_t last_modified = response_instance->return_last();
-  if (last_modified != 0) {
+  request_line += "Host:";
+  request_line += request->return_host_line();
+  request_line += "\r\n";
+  string last_modify_str = response_instance->return_last_str();
+  if (last_modify_str.size() != 0) {
     request_line += "If-Modified-Since: ";
-    request_line += parseTime(last_modified);
+    request_line += last_modify_str;
     request_line += "\r\n";
   }
-  std::string etags_response = response->return_etags();
-  std::cout << "etags is " << etags_response << std::endl;
+  std::string etags_response = response_instance->return_etags();
   if (etags_response.size() != 0) {
     request_line += "If-None-Match: ";
     request_line += etags_response;
     request_line += "\r\n";
   }
   request_line += "\r\n";
-  if (last_modified != 0 || etags_response.size() != 0) {
+  if (last_modify_str.size() != 0 || etags_response.size() != 0) {
+    std::cout << "request line constructed is " << request_line;
     std::vector<char> reply(request_line.begin(), request_line.end());
     return reply;
   }
@@ -501,8 +510,6 @@ std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) 
 void Proxy::HandleValidation(http_Response * response_instance, std::string request_url) {
   int socket_client = socket_des;
   assert(response_instance != NULL);
-  log(std::string(to_string(uid) + ": in cache, but expired at " +
-                  parseTime(response_instance->return_expire()) + "\n"));
   //resend the request, cache update
   int socket_server = connectServer();
   std::vector<char> revalid_request = ConstructValidation(response_instance);
@@ -525,7 +532,9 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
                     "\"\n"));
     if (new_response->return_statuscode() == 200) {
       //update and return to client
+      pthread_mutex_lock(&cacheLock);
       std::string removed_url = cache->put(request_url, new_response);
+      pthread_mutex_unlock(&cacheLock);
       if (removed_url.size() != 0) {
         log(std::string("(no-id): NOTE evicted" + removed_url + "from cache"));
       }

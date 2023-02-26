@@ -25,6 +25,7 @@ class http_Request {
   std::string IPFROM;       //Client IP
   std::string Method;
   std::string http_ver;
+  std::string Host_line;
   std::string Host_name;  //Target server IP
   std::string Host_port;  //Target server port
   std::string requestLine;
@@ -43,6 +44,7 @@ class http_Request {
       IPFROM(),
       Method(),
       http_ver(),
+      Host_line(),
       Host_name(),
       Host_port(),
       line_send(),
@@ -57,6 +59,7 @@ class http_Request {
       IPFROM(ip),
       Method(),
       http_ver(),
+      Host_line(),
       Host_name(),
       Host_port(),
       line_send(ls),
@@ -73,6 +76,7 @@ class http_Request {
   std::string return_ip() const { return IPFROM; }
   std::string return_method() const { return Method; }
   std::string return_httpver() const { return http_ver; }
+  std::string return_host_line() const { return Host_line; }
   std::string return_Host() const { return Host_name; }
   std::string return_port() const { return Host_port; }
   std::vector<char> return_line_send() const { return line_send; }
@@ -84,7 +88,6 @@ class http_Request {
     if (er1 == -1) {
       return -1;
     }
-    // getHost();
     getRequestLine();
     return 0;
   }
@@ -109,7 +112,6 @@ class http_Request {
       return 0;
     }
     else {
-      // std::cerr << "Request parser fail" << std::endl;
       return -1;
     }
   }
@@ -147,5 +149,9 @@ class http_Request {
     size_t request_line_end = Line.find_first_of("\r\n");
     REQUEST = Line.substr(0, request_line_end);
     header_data = Line.substr(request_line_end + 2);
+    size_t host_line_start = Line.find_first_of("Host: ");
+    std::string host_line_whole = Line.substr(host_line_start);
+    size_t host_line_end = host_line_whole.find_first_of("\r\n");
+    Host_line = host_line_whole.substr(0, host_line_end);
   }
 };
