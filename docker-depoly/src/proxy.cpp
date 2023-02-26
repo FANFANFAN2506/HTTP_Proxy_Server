@@ -29,7 +29,7 @@ Cache * myCache = new Cache(MAXCachingCapacity);
 
 /**
  * Reference from Beej's tutorial
- * https://beej.us/guide/bgnet/html//index.html
+ * https://beej.us/guide/bgnet/html/index.html
 */
 void proxyListen() {
   int status;

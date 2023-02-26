@@ -68,7 +68,7 @@ class Cache {
       time_t receivedTime = resp->return_date();
       time_t currTime;
       time(&currTime);
-      if(maxAge == -1 && currTime < expireTime){
+      if(maxAge == -1 && (currTime < expireTime || expireTime == 0)){
         return false;
       }
       if(currTime - receivedTime > maxAge || currTime > expireTime){
