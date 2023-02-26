@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <cassert>
 #include <memory>
 
 #include "log.hpp"
@@ -331,11 +332,14 @@ void Proxy::proxyGET() {
     bool if_expire = cache->checkExpire(request_url);
     if (if_expire) {
       //Expired cached, need update
+      std::cout << "cache expired"
+                << "etags is " << response_instance->return_etags() << std::endl;
       HandleValidation(response_instance, request_url);
       return;
     }
     else {
       //Valid, but need validation
+      std::cout << "cache not expired" << std::endl;
       bool if_no_cache = request->return_no_cache();
       if (if_no_cache) {
         //must validation
@@ -468,6 +472,7 @@ bool Proxy::check502(vector<char> & input) {
 std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) {
   std::string request_line = request->return_request();
   request_line.append("\r\n");
+  assert(response_instance != NULL);
   time_t last_modified = response_instance->return_last();
   if (last_modified != 0) {
     request_line += "If-Modified-Since: ";
@@ -495,6 +500,7 @@ std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) 
 
 void Proxy::HandleValidation(http_Response * response_instance, std::string request_url) {
   int socket_client = socket_des;
+  assert(response_instance != NULL);
   log(std::string(to_string(uid) + ": in cache, but expired at " +
                   parseTime(response_instance->return_expire()) + "\n"));
   //resend the request, cache update
