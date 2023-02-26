@@ -109,7 +109,7 @@ class http_Request {
       return 0;
     }
     else {
-      std::cerr << "Request parser fail" << std::endl;
+      // std::cerr << "Request parser fail" << std::endl;
       return -1;
     }
   }

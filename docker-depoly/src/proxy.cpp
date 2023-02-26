@@ -25,6 +25,10 @@ Cache * myCache = new Cache(MAXCachingCapacity);
  * 7. cache update 写好了，在put的时候会直接update，但是记得要log
  * 8. no-store 的解析问题
 */
+
+/**
+ * Reference from Beej's tutorial
+*/
 void proxyListen() {
   int status;
   int socket_fd;
@@ -50,7 +54,6 @@ void proxyListen() {
       log(std::string("(no-id): ERROR cannot create socket \n"));
       continue;
     }
-
     int yes = 1;
     status = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     status = bind(socket_fd, a->ai_addr, a->ai_addrlen);
@@ -100,10 +103,20 @@ void proxyListen() {
 void * runProxy(void * myProxy) {
   Proxy * Proxy_instance = (Proxy *)myProxy;
   try {
-    std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
-    // std::vector<char> line_send = recvBuff(Proxy_instance->return_socket_des());
+    // std::vector<char> line_send = recvChar(Proxy_instance->return_socket_des());
+    std::vector<char> line_send = recvBuff(Proxy_instance->return_socket_des());
     std::string Line(line_send.begin(), line_send.end());
-    //std::cout << "Line received is " << Line << std::endl;
+    // std::vector<char> data_buff(65536, 0);
+    // int data_rec = 0;
+    // data_rec = recv(Proxy_instance->return_socket_des(), &data_buff.data()[0], 65536, 0);
+    // if (data_rec <= 0) {
+    //   std::cerr << "cannot receive request" << std::endl;
+    //   throw std::exception();
+    // }
+    // // std::cout << "recevied length is:" << data_rec << std::endl;
+    // data_buff.resize(data_rec);
+    // std::string Line(data_buff.begin(), data_buff.end());
+    // std::cout << "Request is " << Line << std::endl;
     Proxy_instance->setRequest(Line, line_send);
     Proxy_instance->judgeRequest();
     delete Proxy_instance;
@@ -239,8 +252,9 @@ void Proxy::proxyCONNECT() {
     for (int i = 0; i <= maxdes; i++) {
       if (FD_ISSET(i, &listen_ports)) {
         //There is a message received
-        std::vector<char> data_buff = recvChar(i);
-        // std::vector<char> data_buff = recvBuff(i);
+        // std::vector<char> data_buff = recvChar(i);
+        std::vector<char> data_buff = recvBuff(i);
+        int length = data_buff.size();
         if (data_buff.size() == 0) {
           //One of the socket closed on there side
           close(socket_server);
@@ -252,11 +266,13 @@ void Proxy::proxyCONNECT() {
           // char * message = to_char(data_buff);
           if (i == socket_server) {
             //The message is from server
-            send(socket_client, &data_buff.data()[0], data_buff.size(), 0);
+            // send(socket_client, &data_buff.data()[0], data_buff.size(), 0);
+            sendall(socket_client, &data_buff.data()[0], &length);
           }
           else {
             //The message is from client
-            send(socket_server, &data_buff.data()[0], data_buff.size(), 0);
+            // send(socket_server, &data_buff.data()[0], data_buff.size(), 0);
+            sendall(socket_server, &data_buff.data()[0], &length);
           }
         }  //End of if for recv 0
       }    //End of if for check fd_set
@@ -295,6 +311,7 @@ void Proxy::proxyGET() {
     std::cout << "not in cache" << std::endl;
     log(std::string(to_string(uid) + ": not in cache\n"));
     int socket_server = connectServer();
+    std::cout << "connected to server" << std::endl;
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200) {
       //if the response is 200 we need to cache it
@@ -329,7 +346,9 @@ void Proxy::proxyGET() {
         //no validation required by request, send it back
         log(std::string(to_string(uid) + ": in cache, valid\n"));
         std::vector<char> reply = response_instance->return_line_recv();
-        send(socket_client, &reply.data()[0], reply.size(), 0);
+        // send(socket_client, &reply.data()[0], reply.size(), 0);
+        int length = reply.size();
+        sendall(socket_client, &reply.data()[0], &length);
         close(socket_client);
         return;
       }
@@ -346,11 +365,16 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
 */
   std::vector<char> send_request = request->return_line_send();
   http_Response * r1 = NULL;
-  if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
-    std::vector<char> input = recvChar(socket_server);
-    // std::vector<char> input = recvBuff(socket_server);
+  int length = send_request.size();
+  // std::cout << "send starts" << std::endl;
+  int error = sendall(socket_server, &send_request.data()[0], &length);
+  // std::cout << "send ends" << error << std::endl;
+  // if (send(socket_server, &send_request.data()[0], send_request.size(), 0) > 0) {
+  if (error == 0) {
+    // std::vector<char> input = recvChar(socket_server);
+    std::vector<char> input = recvBuff(socket_server);
     std::string response_test(input.begin(), input.end());
-    std::cout << "response test is :" << response_test << std::endl;
+    // std::cout << "response test is :" << response_test << std::endl;
     if (check502(input)) {
       proxyERROR(502);
       pthread_exit(0);
@@ -359,7 +383,10 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
       return NULL;
     }
     if (input.size() != 0) {
-      if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
+      int length = input.size();
+      int error = sendall(socket_client, &input.data()[0], &length);
+      // if (send(socket_client, &input.data()[0], input.size(), 0) > 0) {
+      if (error == 0) {
         std::string reply(input.begin(), input.end());
         r1 = new http_Response(socket_server, reply, input);
         int error = r1->parseResponse(input);
@@ -402,7 +429,7 @@ void Proxy::proxyERROR(int code) {
   close(client_fd);
 }
 
-bool Proxy::chunkHandle(vector<char> input, int server_fd) {
+bool Proxy::chunkHandle(vector<char> & input, int server_fd) {
   // std::string str = char_to_string(input);
   std::string str(input.begin(), input.end());
   size_t start = str.find("Transfer-Encoding:");
@@ -414,18 +441,23 @@ bool Proxy::chunkHandle(vector<char> input, int server_fd) {
   if (encodeLine.find("chunked") == std::string::npos) {
     return false;
   }
-  send(socket_des, &input.data()[0], input.size(), 0);
+  int length = input.size();
+  sendall(socket_des, &input.data()[0], &length);
+  // send(socket_des, &input.data()[0], input.size(), 0);
   while (1) {
-    std::vector<char> chunkMsg = recvChar(server_fd);
+    std::vector<char> chunkMsg = recvBuff(server_fd);
+    // std::vector<char> chunkMsg = recvChar(server_fd);
     if (chunkMsg.size() <= 0) {
       break;
     }
-    send(socket_des, &chunkMsg.data()[0], chunkMsg.size(), 0);
+    int length = chunkMsg.size();
+    sendall(socket_des, &chunkMsg.data()[0], &length);
+    // send(socket_des, &chunkMsg.data()[0], chunkMsg.size(), 0);
   }
   return true;
 }
 
-bool Proxy::check502(vector<char> input) {
+bool Proxy::check502(vector<char> & input) {
   std::string str(input.begin(), input.end());
   if (str.find("\r\n\r\n") == std::string::npos) {
     return true;
@@ -443,6 +475,7 @@ std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) 
     request_line += "\r\n";
   }
   std::string etags_response = response->return_etags();
+  std::cout << "etags is " << etags_response << std::endl;
   if (etags_response.size() != 0) {
     request_line += "If-None-Match: ";
     request_line += etags_response;
@@ -467,9 +500,12 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   //resend the request, cache update
   int socket_server = connectServer();
   std::vector<char> revalid_request = ConstructValidation(response_instance);
-  send(socket_server, &revalid_request.data()[0], revalid_request.size(), 0);
+  int length = revalid_request.size();
+  sendall(socket_server, &revalid_request.data()[0], &length);
+  // send(socket_server, &revalid_request.data()[0], revalid_request.size(), 0);
   //reply with the new response
-  std::vector<char> reply = recvChar(socket_server);
+  // std::vector<char> reply = recvChar(socket_server);
+  std::vector<char> reply = recvBuff(socket_server);
   std::string reply_str(reply.begin(), reply.end());
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);
   int error = new_response->parseResponse(reply);
@@ -487,18 +523,26 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
       if (removed_url.size() != 0) {
         log(std::string("(no-id): NOTE evicted" + removed_url + "from cache"));
       }
-      send(socket_client, &reply.data()[0], reply.size(), 0);
+      int length = reply.size();
+      sendall(socket_client, &reply.data()[0], &length);
+      // send(socket_client, &reply.data()[0], reply.size(), 0);
     }
     else if (new_response->return_statuscode() == 304) {
       //not modified return the cached response
       std::vector<char> cached_response = response_instance->return_line_recv();
-      send(socket_client, &cached_response.data()[0], cached_response.size(), 0);
+      int length = cached_response.size();
+      sendall(socket_client, &cached_response.data()[0], &length);
+      // send(socket_client, &cached_response.data()[0], cached_response.size(), 0);
     }
   }
   close(socket_server);
   close(socket_client);
 }
 
+/**SendAll
+ * Reference from Beej's tutorial
+ * https://beej.us/guide/bgnet/html//index.html#recvman
+*/
 int Proxy::sendall(int s, char * buf, int * len) {
   int total = 0;         // how many bytes we've sent
   int bytesleft = *len;  // how many we have left to send
