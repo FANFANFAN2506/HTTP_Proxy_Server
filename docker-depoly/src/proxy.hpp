@@ -50,6 +50,8 @@ class Proxy {
   void proxyERROR(int code);
   bool chunkHandle(vector<char> input, int server_fd);
   bool check502(vector<char> input);
+  std::vector<char> ConstructValidation(http_Response * response_instance);
+  void HandleValidation(http_Response * response_instance, std::string request_url);
   void destructProxy() {
     if (request) {
       delete request;
