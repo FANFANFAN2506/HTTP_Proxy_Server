@@ -20,9 +20,9 @@ class Cache {
   http_Response * get(string url) {
     const auto it = map.find(url);
     // If key does not exist
-    if (it == map.cend())
+    if (it == map.cend()){
       return NULL;
-
+    }
     // Move this key to the front of the cache
     respList.splice(respList.begin(), respList, it->second);
     return it->second->second;

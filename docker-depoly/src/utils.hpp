@@ -24,16 +24,21 @@ std::vector<char> recvChar(int client_fd) {
   struct timeval tv;
   tv.tv_sec = 1;
   tv.tv_usec = 0;
+<<<<<<< HEAD
   setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
   int data_rec = 0;
+=======
+  int data_rec;
+>>>>>>> 7d5d7062324e95debad692d23d4678f3ca8e0565
   int total = 0;
   int increment = 20480;
   int start = 0;
   std::vector<char> data_buff(increment, 0);
+  setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
     //There is data received
     total += data_rec;
-    // std::cout << "size is " << data_buff.size() << std::endl;
+    //std::cout << "size is " << data_rec << std::endl;
     if (data_rec < increment) {
       //connection close
       break;

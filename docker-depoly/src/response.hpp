@@ -90,7 +90,6 @@ class http_Response {
     if (result == httpparser::HttpResponseParser::ParsingCompleted) {
       status = parsed_response.status;
       statusCode = parsed_response.statusCode;
-      std::cout << "!!!!" << statusCode << std::endl;
       std::stringstream sstream;
       sstream << "HTTP/" << parsed_response.versionMajor << "."
               << parsed_response.versionMinor;
