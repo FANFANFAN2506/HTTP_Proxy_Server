@@ -384,7 +384,13 @@ void Proxy::proxyERROR(int code) {
 
 bool Proxy::chunkHandle(vector<char> input, int server_fd) {
   std::string str = char_to_string(input);
-  if (str.find("Transfer-Encoding: chunked") == std::string::npos) {
+  size_t start = str.find("Transfer-Encoding:");
+  if (start == std::string::npos) {
+    return false;
+  }
+  size_t end = str.find("\n", start);
+  std::string encodeLine = str.substr(start,end);
+  if(encodeLine.find("chunked")== std::string::npos){
     return false;
   }
   send(socket_des, &input.data()[0], input.size(), 0);
@@ -397,6 +403,7 @@ bool Proxy::chunkHandle(vector<char> input, int server_fd) {
   }
   return true;
 }
+
 bool Proxy::check502(vector<char> input) {
   std::string str = char_to_string(input);
   if (str.find("\r\n\r\n") == std::string::npos) {
