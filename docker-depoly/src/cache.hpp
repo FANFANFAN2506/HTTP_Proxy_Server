@@ -1,4 +1,5 @@
 #include <stdlib.h>
+
 #include <list>
 #include <unordered_map>
 
@@ -12,9 +13,7 @@ class Cache {
   unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
 
  public:
-  Cache(size_t size){
-    capacity = size;
-  }
+  Cache(size_t size) { capacity = size; }
 
   /**
    * @func: get response pointer from the cache using URI
@@ -25,7 +24,7 @@ class Cache {
     pthread_mutex_lock(&cacheLock);
     const auto it = map.find(url);
     // If key does not exist
-    if (it == map.cend()){
+    if (it == map.cend()) {
       pthread_mutex_unlock(&cacheLock);
       return NULL;
     }
@@ -76,17 +75,17 @@ class Cache {
    * @param: {url: URI string of the website}  
    * @return: {True: expired or not found. False: not expired} 
    */
-  int checkExpire(string url){
+  int checkExpire(string url) {
     const auto it = map.find(url);
-    if (it != map.cend()){
+    if (it != map.cend()) {
       http_Response * resp = (it->second->second);
       time_t maxAge = resp->return_max();
-      time_t expireTime  = resp->return_expire();
+      time_t expireTime = resp->return_expire();
       time_t receivedTime = resp->return_date();
       time_t currTime;
-      time(&currTime);
-
-      if((currTime - receivedTime > maxAge || maxAge == -1) && (currTime < expireTime || expireTime == 0)){
+      currTime = time(0);
+      if ((currTime - receivedTime < maxAge || maxAge == -1) &&
+          (currTime < expireTime || expireTime == 0)) {
         return false;
       }
     }

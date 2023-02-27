@@ -377,11 +377,14 @@ void Proxy::proxyGET() {
       bool if_no_cache_response = response_instance->return_no_cache();
       //request or response: no-cache or must-revalidate
       if (if_no_cache_request || if_no_cache_response) {
+        std::cout << "Need validation" << std::endl;
+        log(std::string(to_string(uid) + ": in cache, requires validation\n"));
         HandleValidation(response_instance, request_url);
         return;
       }
       else {
         //no validation required
+        std::cout << "Don't need validation" << std::endl;
         log(std::string(to_string(uid) + ": in cache, valid\n"));
         std::vector<char> reply = response_instance->return_line_recv();
         int length = reply.size();
@@ -564,11 +567,12 @@ std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) 
   if (last_modify_str.size() != 0 || etags_response.size() != 0) {
     std::cout << "request line constructed is " << request_line;
     std::vector<char> reply(request_line.begin(), request_line.end());
+    std::cout << "conditional request is: " << request_line << std::endl;
     return reply;
   }
   else {
     //shouldn't miss two fields
-    std::vector<char> reply;
+    std::vector<char> reply = request->return_line_send();
     return reply;
   }
 }
@@ -590,11 +594,14 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   int socket_server = connectServer();
   std::vector<char> revalid_request = ConstructValidation(response_instance);
   int length = revalid_request.size();
+  //log requesting
   sendall(socket_server, &revalid_request.data()[0], &length);
-
   //reply with the new response
+  std::cout << "wait for reply" << std::endl;
   std::vector<char> reply = recvBuff(socket_server);
+  //log receving
   std::string reply_str(reply.begin(), reply.end());
+  std::cout << "Reply end" << std::endl;
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);
   int error = new_response->parseResponse(reply);
   if (error == -1) {
@@ -603,6 +610,7 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
     std::cerr << "Reponse parsing fail" << std::endl;
   }
   else {
+    std::cout << "Responding " << new_response->return_response() << std::endl;
     log(std::string(to_string(uid) + ": Responding \"" + new_response->return_response() +
                     "\"\n"));
     if (new_response->return_statuscode() == 200) {

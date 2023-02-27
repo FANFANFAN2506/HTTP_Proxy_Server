@@ -44,7 +44,7 @@ std::vector<char> recvChar(int client_fd) {
 
 std::string parseTime(time_t time) {
   struct tm * timeinfo;
-  timeinfo = localtime(&time);
+  timeinfo = gmtime(&time);
   std::string time_str = asctime(timeinfo);
   return time_str;
 }

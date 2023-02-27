@@ -31,6 +31,9 @@ class http_Request {
   std::vector<char> line_send;
   bool no_cache;
   time_t TIME;
+  int max_stale;
+  int min_fresh;
+  int freshness;
 
  public:
   //default constructor
@@ -48,7 +51,9 @@ class http_Request {
       Host_port(),
       line_send(),
       no_cache(),
-      TIME() {}
+      TIME(),
+      max_stale(),
+      min_fresh() {}
   http_Request(int sd, std::string l, std::vector<char> & ls, std::string ip, time_t t) :
       socket_des(sd),
       Line(l),
@@ -63,7 +68,9 @@ class http_Request {
       Host_port(),
       line_send(ls),
       no_cache(false),
-      TIME(t) {
+      TIME(t),
+      max_stale(-1),
+      min_fresh(-1) {
     //Get uri and method
   }
   // long return_UID() const { return UID; }
@@ -137,12 +144,34 @@ class http_Request {
             std::string::npos) {  // std::cout << "no_cache" << std::endl;
           no_cache = true;
         }
+        if (findNumber("max-stale=", cache_ctrl) >= 0) {
+          max_stale = findNumber("max-stale=", cache_ctrl);
+          std::cout << max_stale << std::endl;
+        }
+        if (findNumber("min-fresh=", cache_ctrl) >= 0) {
+          min_fresh = findNumber("min-fresh=", cache_ctrl);
+          std::cout << min_fresh << std::endl;
+        }
         size_t must_revalid = cache_ctrl.find("must-revalidate");
         if (must_revalid != std::string::npos) {
           no_cache = true;
         }
       }
     }
+  }
+
+  int findNumber(std::string header, std::string cache_ctrl) {
+    size_t filed_start = cache_ctrl.find(header.c_str());
+    if (filed_start != std::string::npos) {
+      std::string filed_whole = cache_ctrl.substr(filed_start + header.size());
+      size_t filed_end = filed_whole.find(",");
+      if (filed_end == std::string::npos) {
+        filed_end = filed_whole.find("\r\n");
+      }
+      int return_value = stoi(filed_whole.substr(0, filed_end));
+      return return_value;
+    }
+    return -1;
   }
 
   void getRequestLine() {
