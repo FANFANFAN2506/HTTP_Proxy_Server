@@ -21,7 +21,7 @@ Cache * myCache = new Cache(MAXCachingCapacity);
  * 1. std::thread, fd_guard
  * 3. response指针可以删了，免得销毁的时候误删
  * 4. 一些ico的 parse error问题
-*/
+ */
 
 /**
  * @func: start the listen process in the main thread
@@ -359,7 +359,8 @@ void Proxy::proxyGET() {
     //If we find this in the cache;
     std::cout << "Find in cache" << std::endl;
     //Expiration function
-    bool if_expire = myCache->checkExpire(request_url);
+    time_t request_max_age = request->return_max();
+    bool if_expire = myCache->checkExpire(request_url, request_max_age);
     if (if_expire) {
       //Expired cached, need update
       std::cout << "expire cache" << std::endl;
@@ -369,12 +370,17 @@ void Proxy::proxyGET() {
       return;
     }
     else {
-      //Valid, but need validation
-      std::cout << "cache not expired" << std::endl;
+      time_t freshness = request->calFresh();
+      if (freshness)
+        //Valid, but need validation
+        std::cout << "cache not expired" << std::endl;
       bool if_no_cache_request = request->return_no_cache();
       bool if_no_cache_response = response_instance->return_no_cache();
       //request or response: no-cache or must-revalidate
-      if (if_no_cache_request || if_no_cache_response) {
+      if (if_no_cache_request || if_no_cache_response ||
+          (response_instance->return_max() + freshness +
+               response_instance->return_date() >
+           time(0))) {
         std::cout << "Need validation" << std::endl;
         log(std::string(to_string(uid) + ": in cache, requires validation\n"));
         HandleValidation(response_instance, request_url);
@@ -519,10 +525,8 @@ http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
     std::cout << "chunk parse failed" << std::endl;
     return NULL;
   }
-
   return resp;
 }
-
 
 /**
  * @func: check the response to see whether it have a line
@@ -601,8 +605,12 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   //reply with the new response
   std::cout << "wait for reply" << std::endl;
   std::vector<char> reply = recvBuff(socket_server);
+  std::string str(reply.begin(), reply.end());
+  size_t resp_pos = str.find("\r\n");
+  std::string respStr = str.substr(0, resp_pos);
   //log receving
-
+  log(std::string(to_string(uid) + ": Received \"" + respStr + "\" from " +
+                  request->return_Host() + "\n"));
   std::string reply_str(reply.begin(), reply.end());
   std::cout << "Reply end" << std::endl;
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);

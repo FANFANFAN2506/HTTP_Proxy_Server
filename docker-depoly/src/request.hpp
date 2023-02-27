@@ -34,7 +34,6 @@ class http_Request {
   int max_age;
   int max_stale;
   int min_fresh;
-  int freshness;
 
  public:
   //default constructor
@@ -72,8 +71,8 @@ class http_Request {
       no_cache(false),
       TIME(t),
       max_age(-1),
-      max_stale(-1),
-      min_fresh(-1) {
+      max_stale(0),
+      min_fresh(0) {
     //Get uri and method
   }
   // long return_UID() const { return UID; }
@@ -90,6 +89,7 @@ class http_Request {
   std::string return_port() const { return Host_port; }
   std::vector<char> return_line_send() const { return line_send; }
   time_t return_time() const { return TIME; }
+  time_t return_max() const { return max_age; }
   bool return_no_cache() const { return no_cache; }
   int constructRequest() {
     int er1;
@@ -191,7 +191,5 @@ class http_Request {
     Host_line = host_line_whole.substr(0, host_line_end);
   }
 
-  time_t calFresh(){
-    return max_stale - min_fresh;
-  }
+  time_t calFresh() { return max_stale - min_fresh; }
 };
