@@ -31,6 +31,7 @@ class http_Request {
   std::vector<char> line_send;
   bool no_cache;
   time_t TIME;
+  int max_age;
   int max_stale;
   int min_fresh;
   int freshness;
@@ -52,6 +53,7 @@ class http_Request {
       line_send(),
       no_cache(),
       TIME(),
+      max_age(),
       max_stale(),
       min_fresh() {}
   http_Request(int sd, std::string l, std::vector<char> & ls, std::string ip, time_t t) :
@@ -69,6 +71,7 @@ class http_Request {
       line_send(ls),
       no_cache(false),
       TIME(t),
+      max_age(-1),
       max_stale(-1),
       min_fresh(-1) {
     //Get uri and method
@@ -143,6 +146,10 @@ class http_Request {
         if (no_cache_start !=
             std::string::npos) {  // std::cout << "no_cache" << std::endl;
           no_cache = true;
+        }
+        if (findNumber("max-age=") >= 0) {
+          max_age = findNumber("max-age=");
+          std::cout << max_age << std::endl;
         }
         if (findNumber("max-stale=", cache_ctrl) >= 0) {
           max_stale = findNumber("max-stale=", cache_ctrl);
