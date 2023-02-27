@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "response.hpp"
-
+extern pthread_mutex_t cacheLock;
 using namespace std;
 class Cache {
  public:
@@ -11,26 +11,40 @@ class Cache {
   list<pair<string, http_Response *> > respList;
   unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
 
-  //mutex
  public:
   Cache(size_t size){
     capacity = size;
   }
 
+  /**
+   * @func: get response pointer from the cache using URI
+   * @param: {url: URI of the response}  
+   * @return: {response pointer if found, else NULL} 
+   */
   http_Response * get(string url) {
+    pthread_mutex_lock(&cacheLock);
     const auto it = map.find(url);
     // If key does not exist
     if (it == map.cend()){
+      pthread_mutex_unlock(&cacheLock);
       return NULL;
     }
     // Move this key to the front of the cache
     respList.splice(respList.begin(), respList, it->second);
+    pthread_mutex_unlock(&cacheLock);
     return it->second->second;
   }
 
+  /**
+   * @func: put the response in the cache by URI
+   * @param: {url: URI string of the response. value: http_Response response pointer}  
+   * @return: {the URI string if cache exceed max capacity and removed, else empty string} 
+   */
   string put(string url, http_Response * value) {
+    pthread_mutex_lock(&cacheLock);
     const auto it = map.find(url);
     string ans = "";
+
     // Key already exists
     if (it != map.cend()) {
       // Update the value
@@ -38,6 +52,7 @@ class Cache {
       it->second->second = value;
       // Move this entry to the front of the cache
       respList.splice(respList.begin(), respList, it->second);
+      pthread_mutex_unlock(&cacheLock);
       return "";
     }
 
@@ -52,14 +67,16 @@ class Cache {
     // Insert the entry to the front of the cache and update mapping.
     respList.emplace_front(url, value);
     map[url] = respList.begin();
+    pthread_mutex_unlock(&cacheLock);
     return ans;
   }
 
   /**
-   * Input: URI of the website
-   * Output: True: expired or not find, need update, False: not expire, no update needed.
-  */
-  bool checkExpire(string url){
+   * @func: check wether the response is expired.
+   * @param: {url: URI string of the website}  
+   * @return: {True: expired or not found. False: not expired} 
+   */
+  int checkExpire(string url){
     const auto it = map.find(url);
     if (it != map.cend()){
       http_Response * resp = (it->second->second);
@@ -68,13 +85,10 @@ class Cache {
       time_t receivedTime = resp->return_date();
       time_t currTime;
       time(&currTime);
-      if(maxAge == -1 && (currTime < expireTime || expireTime == 0)){
+
+      if((currTime - receivedTime > maxAge || maxAge == -1) && (currTime < expireTime || expireTime == 0)){
         return false;
       }
-      if(currTime - receivedTime > maxAge || currTime > expireTime){
-        return true;
-      }
-      return false;
     }
     return true;
   }

@@ -21,19 +21,18 @@ class Proxy {
   std::string clientIP;
   http_Request * request;
   http_Response * response;
-  Cache * cache;
 
  public:
   //Constructor
   Proxy() :
-      uid(0), socket_des(0), clientIP(), request(NULL), response(NULL), cache(NULL) {}
-  Proxy(long id, int sd, std::string ip, Cache * cache) :
+      uid(0), socket_des(0), clientIP(), request(NULL), response(NULL) {}
+  Proxy(long id, int sd, std::string ip) :
       uid(id),
       socket_des(sd),
       clientIP(ip),
       request(NULL),
-      response(NULL),
-      cache(cache) {}
+      response(NULL)
+      {}
   //Get the private field
   long return_UID() const { return uid; }
   int return_socket_des() const { return socket_des; }
@@ -53,6 +52,7 @@ class Proxy {
   std::vector<char> ConstructValidation(http_Response * response_instance);
   void HandleValidation(http_Response * response_instance, std::string request_url);
   int sendall(int s, char * buf, int * len);
+  void receiveLog(http_Response * resp);
   void destructProxy() {
     if (request) {
       delete request;

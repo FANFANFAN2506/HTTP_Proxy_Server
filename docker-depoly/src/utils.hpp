@@ -21,7 +21,6 @@ std::vector<char> recvChar(int client_fd) {
   struct timeval tv;
   tv.tv_sec = 1;
   tv.tv_usec = 0;
-  setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
   int data_rec = 0;
   int total = 0;
   int increment = 20480;
@@ -31,7 +30,6 @@ std::vector<char> recvChar(int client_fd) {
   while ((data_rec = recv(client_fd, &data_buff.data()[start], increment, 0)) > 0) {
     //There is data received
     total += data_rec;
-    //std::cout << "size is " << data_rec << std::endl;
     if (data_rec < increment) {
       //connection close
       break;

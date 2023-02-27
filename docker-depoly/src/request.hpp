@@ -16,18 +16,17 @@
 
 class http_Request {
  private:
-  // long UID;                 //UID unique id for log
-  int socket_des;       //socket_des descriptor
-  std::string Line;     //Whole contents of the request
-  std::string REQUEST;  //Request line(first line)
+  int socket_des;               //socket_des descriptor
+  std::string Line;             //Whole contents of the request
+  std::string REQUEST;          //Request line(first line)
   std::string uri;
-  std::string header_data;  //For CONNECT method remove the request line
-  std::string IPFROM;       //Client IP
+  std::string header_data;      //For CONNECT method remove the request line
+  std::string IPFROM;           //Client IP
   std::string Method;
   std::string http_ver;
   std::string Host_line;
-  std::string Host_name;  //Target server IP
-  std::string Host_port;  //Target server port
+  std::string Host_name;        //Target server IP
+  std::string Host_port;        //Target server port
   std::string requestLine;
   std::vector<char> line_send;
   bool no_cache;
@@ -97,16 +96,13 @@ class http_Request {
     httpparser::HttpRequestParser::ParseResult parsed_result = parser.parse(
         parsed_request, &line_send.data()[0], &line_send.data()[0] + line_send.size());
     if (parsed_result == httpparser::HttpRequestParser::ParsingCompleted) {
-      // std::cout << parsed_request.inspect() << std::endl;
       Method = parsed_request.method;
       uri = parsed_request.uri;
       std::stringstream sstream;
       sstream << "HTTP/" << parsed_request.versionMajor << "."
               << parsed_request.versionMinor;
       http_ver = sstream.str();
-      if (getHostIp(parsed_request) < 0) {
-        return -1;
-      }
+      getHostIp(parsed_request);
       uri = Host_name + Host_port + uri;
       // }
       return 0;
@@ -115,7 +111,8 @@ class http_Request {
       return -1;
     }
   }
-  int getHostIp(httpparser::Request & parsed_request) {
+
+  void getHostIp(httpparser::Request & parsed_request) {
     std::vector<httpparser::Request::HeaderItem>::const_iterator it;
     for (it = parsed_request.headers.begin(); it != parsed_request.headers.end(); ++it) {
       if (it->name == "Host") {
@@ -133,7 +130,6 @@ class http_Request {
           Host_name = host_line;
           Host_port = "80";
         }
-        return 0;
       }
       else if (it->name == "Cache-Control") {
         std::string cache_ctrl = it->value;
@@ -143,8 +139,8 @@ class http_Request {
         }
       }
     }
-    return -1;
   }
+
   void getRequestLine() {
     size_t request_line_end = Line.find_first_of("\r\n");
     REQUEST = Line.substr(0, request_line_end);
