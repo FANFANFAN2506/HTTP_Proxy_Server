@@ -595,11 +595,14 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   std::vector<char> revalid_request = ConstructValidation(response_instance);
   int length = revalid_request.size();
   //log requesting
+  log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() +
+                  "\" from " + request->return_Host() + "\n"));
   sendall(socket_server, &revalid_request.data()[0], &length);
   //reply with the new response
   std::cout << "wait for reply" << std::endl;
   std::vector<char> reply = recvBuff(socket_server);
   //log receving
+
   std::string reply_str(reply.begin(), reply.end());
   std::cout << "Reply end" << std::endl;
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);
