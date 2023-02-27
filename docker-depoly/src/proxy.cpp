@@ -514,7 +514,10 @@ http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
   std::string whole_resp(total.begin(), total.end());
   resp = new http_Response(server_fd, whole_resp, total);
   int error = resp->parseResponse(total);
-
+  if (error == -1) {
+    std::cout << "chunk parse failed" << std::endl;
+    return NULL;
+  }
   return resp;
 }
 
@@ -664,17 +667,26 @@ void Proxy::receiveLog(http_Response * resp) {
     log(std::string(to_string(uid) + ": Note Cache-Control: " + cacheControl + "\n"));
   }
   std::string reason = resp->return_no_cache_reason();
-  if(reason.size()!=0){
+  if (reason.size() != 0) {
     log(std::string(to_string(uid) + ": not cacheable because " + reason + "\n"));
-  }else if(resp->return_no_cache()){
+  }
+  else if (resp->return_no_cache()) {
     log(std::string(to_string(uid) + ": cached, but requires re-validation \n"));
-  }else{
+  }
+  else {
     time_t max_age = resp->return_max();
     time_t expireTime = resp->return_expire();
     time_t recvTime = resp->return_date();
-    if(max_age == -1 && expireTime == 0){
+    if (max_age == -1 && expireTime == 0) {
       //no expire
+      log(std::string(to_string(uid) + ": cached, expires at Not Declared"));
+    }
+    else if (max_age != -1) {
+      log(std::string(to_string(uid) + ": cached, expires at " +
+                      parseTime(recvTime + max_age)));
+    }
+    else {
+      log(std::string(to_string(uid) + ": cached, expires at " + parseTime(expireTime)));
     }
   }
-
 }

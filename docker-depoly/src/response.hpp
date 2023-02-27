@@ -182,10 +182,8 @@ class http_Response {
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
     const char * format = "%a, %e %h %Y %X";
-    std::cout << time_str <<std::endl;
     char * res = strptime(time_str.c_str(), format, &tm);
     if (res == nullptr) {
-      std::cout << parseTime(mktime(&tm)) << std::endl;
       std::cerr << "wrong time conversion" << std::endl;
       return -1;
     }
