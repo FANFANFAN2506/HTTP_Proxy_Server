@@ -128,7 +128,11 @@ class http_Response {
         }
       }
       else if (it->name == "Expires") {
-        EXPIRES = stringTotime(it->value);
+        if(it->value == "-1"){
+          EXPIRES = -1;
+        }else{
+          EXPIRES = stringTotime(it->value);
+        }
       }
       else if (it->name == "Date") {
         Date = stringTotime(it->value);
@@ -149,10 +153,12 @@ class http_Response {
     }
     return 0;
   }
+
   time_t stringTotime(std::string time_str) {
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
     const char * format = "%a, %e %h %Y %X";
+    std::cout << time_str <<std::endl;
     char * res = strptime(time_str.c_str(), format, &tm);
     if (res == nullptr) {
       std::cerr << "wrong time conversion" << std::endl;

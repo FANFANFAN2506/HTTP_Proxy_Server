@@ -47,7 +47,7 @@ class Proxy {
   void proxyGET();
   http_Response * proxyFetch(int socket_server, int socket_client);
   void proxyERROR(int code);
-  bool chunkHandle(vector<char> & input, int server_fd);
+  http_Response * chunkHandle(vector<char> & input, int server_fd);
   bool check502(vector<char> & input);
   std::vector<char> ConstructValidation(http_Response * response_instance);
   void HandleValidation(http_Response * response_instance, std::string request_url);

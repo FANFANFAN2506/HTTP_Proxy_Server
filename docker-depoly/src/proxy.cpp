@@ -418,9 +418,10 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
       proxyERROR(502);
       pthread_exit(0);
     }
-
-    if (chunkHandle(input, socket_server)) {
-      return NULL;
+    
+    http_Response * chunkResp = chunkHandle(input, socket_server);
+    if (chunkResp != NULL) {
+      return chunkResp;
     }
 
     if (input.size() != 0) {
@@ -474,9 +475,9 @@ void Proxy::proxyERROR(int code) {
  * @param: {input: response message, server_fd: server socket}  
  * @return: {True for chunk resp and False for normal} 
  */
-bool Proxy::chunkHandle(vector<char> & input, int server_fd) {
+ http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
   std::string str(input.begin(), input.end());
-
+  http_Response * resp = NULL;
   //parse response line
   size_t resp_pos = str.find("\r\n");
   std::string respStr = str.substr(0, resp_pos);
@@ -484,13 +485,15 @@ bool Proxy::chunkHandle(vector<char> & input, int server_fd) {
   //check if it is a chunk response
   size_t start = str.find("Transfer-Encoding:");
   if (start == std::string::npos) {
-    return false;
+    return resp;
   }
   size_t end = str.find("\n", start);
   std::string encodeLine = str.substr(start, end);
   if (encodeLine.find("chunked") == std::string::npos) {
-    return false;
+    return resp;
   }
+
+  vector<char> total(input);
 
   // send response
   int length = input.size();
@@ -503,10 +506,15 @@ bool Proxy::chunkHandle(vector<char> & input, int server_fd) {
     if (chunkMsg.size() <= 0) {
       break;
     }
+    total.insert(total.end(),chunkMsg.begin(),chunkMsg.end());
     int length = chunkMsg.size();
     sendall(socket_des, &chunkMsg.data()[0], &length);
   }
-  return true;
+  std::string whole_resp(total.begin(),total.end());
+  resp = new http_Response(server_fd, whole_resp, total);
+  int error = resp->parseResponse(total);
+  
+  return resp;
 }
 
 /**
