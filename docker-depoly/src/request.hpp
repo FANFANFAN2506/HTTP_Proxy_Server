@@ -119,7 +119,6 @@ class http_Request {
         std::string host_line = it->value;
         size_t port_start = host_line.find_first_of(":\r");
         //if we allowed it to declare port
-        //maybe the we could hard code as 80
         if (port_start != std::string::npos) {
           //the port is declared
           Host_name = host_line.substr(0, port_start);
