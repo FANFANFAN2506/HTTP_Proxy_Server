@@ -61,6 +61,7 @@ class http_Response {
       Date(0),
       EXPIRES(0),
       max_age(-1),
+
       no_store(false),
       no_cache(false),
       if_chunk(false) {
@@ -79,6 +80,7 @@ class http_Response {
   time_t return_date() const { return Date; }
   time_t return_expire() const { return EXPIRES; }
   int return_max() const { return max_age; }
+  // int return_fresh() const { return freshness; }
   bool return_no_store() const { return no_store; }
   std::string return_no_cache_reason() const { return no_cache_reason; }
   bool return_no_cache() const { return no_cache; }
@@ -117,15 +119,11 @@ class http_Response {
          ++it) {
       if (it->name == "Cache-Control") {
         cache_ctrl = it->value;
-        size_t max_age_start = cache_ctrl.find("max-age=");
-        if (max_age_start != std::string::npos) {
-          std::string max_age_whole = cache_ctrl.substr(max_age_start + 8);
-          size_t max_age_end = max_age_whole.find(",");
-          if (max_age_end == std::string::npos) {
-            max_age_end = max_age_whole.find("\r\n");
-          }
-          max_age = stoi(max_age_whole.substr(0, max_age_end));
+        if (findNumber("max-age=") >= 0) {
+          max_age = findNumber("max-age=");
+          std::cout << max_age << std::endl;
         }
+
         size_t no_store_start = cache_ctrl.find("no-store");
         if (no_store_start != std::string::npos) {
           std::string no_store_str = cache_ctrl.substr(no_store_start, 8);
@@ -159,7 +157,10 @@ class http_Response {
         }
       }
       else if (it->name == "Date") {
-        Date = stringTotime(it->value);
+        // Date = stringTotime(it->value);
+        time_t currTime;
+        currTime = time(0);
+        Date = currTime;
       }
       else if (it->name == "Last-Modified") {
         last_str = it->value;
@@ -176,6 +177,20 @@ class http_Response {
       }
     }
     return 0;
+  }
+
+  int findNumber(std::string header) {
+    size_t filed_start = cache_ctrl.find(header.c_str());
+    if (filed_start != std::string::npos) {
+      std::string filed_whole = cache_ctrl.substr(filed_start + header.size());
+      size_t filed_end = filed_whole.find(",");
+      if (filed_end == std::string::npos) {
+        filed_end = filed_whole.find("\r\n");
+      }
+      int return_value = stoi(filed_whole.substr(0, filed_end));
+      return return_value;
+    }
+    return -1;
   }
 
   time_t stringTotime(std::string time_str) {
