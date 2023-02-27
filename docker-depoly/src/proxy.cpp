@@ -374,17 +374,17 @@ void Proxy::proxyGET() {
     else {
       //Valid, but need validation
       std::cout << "cache not expired" << std::endl;
-      bool if_no_cache = request->return_no_cache();
-      if (if_no_cache) {
-        //must validation
+      bool if_no_cache_request = request->return_no_cache();
+      bool if_no_cache_response = response_instance->return_no_cache();
+      //request or response: no-cache or must-revalidate
+      if (if_no_cache_request || if_no_cache_response) {
         HandleValidation(response_instance, request_url);
         return;
       }
       else {
-        //no validation required by request, send it back
+        //no validation required
         log(std::string(to_string(uid) + ": in cache, valid\n"));
         std::vector<char> reply = response_instance->return_line_recv();
-        // send(socket_client, &reply.data()[0], reply.size(), 0);
         int length = reply.size();
         sendall(socket_client, &reply.data()[0], &length);
         close(socket_client);
@@ -420,7 +420,7 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
       proxyERROR(502);
       pthread_exit(0);
     }
-    
+
     http_Response * chunkResp = chunkHandle(input, socket_server);
     if (chunkResp != NULL) {
       return chunkResp;
@@ -477,7 +477,7 @@ void Proxy::proxyERROR(int code) {
  * @param: {input: response message, server_fd: server socket}  
  * @return: {True for chunk resp and False for normal} 
  */
- http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
+http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
   std::string str(input.begin(), input.end());
   http_Response * resp = NULL;
   //parse response line
@@ -508,14 +508,14 @@ void Proxy::proxyERROR(int code) {
     if (chunkMsg.size() <= 0) {
       break;
     }
-    total.insert(total.end(),chunkMsg.begin(),chunkMsg.end());
+    total.insert(total.end(), chunkMsg.begin(), chunkMsg.end());
     int length = chunkMsg.size();
     sendall(socket_des, &chunkMsg.data()[0], &length);
   }
-  std::string whole_resp(total.begin(),total.end());
+  std::string whole_resp(total.begin(), total.end());
   resp = new http_Response(server_fd, whole_resp, total);
   int error = resp->parseResponse(total);
-  
+
   return resp;
 }
 
@@ -617,6 +617,10 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
       std::vector<char> cached_response = response_instance->return_line_recv();
       int length = cached_response.size();
       sendall(socket_client, &cached_response.data()[0], &length);
+    }
+    else {  //5xx
+      int length = reply.size();
+      sendall(socket_client, &reply.data()[0], &length);
     }
   }
   close(socket_server);

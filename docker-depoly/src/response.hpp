@@ -80,7 +80,8 @@ class http_Response {
   time_t return_expire() const { return EXPIRES; }
   int return_max() const { return max_age; }
   bool return_no_store() const { return no_store; }
-  std::string return_no_chace() const { return no_cache_reason; }
+  std::string return_no_cache_reason() const { return no_cache_reason; }
+  bool return_no_cache() const { return no_cache; }
   std::string return_response() const {
     std::stringstream sstream;
     sstream << http_ver << " " << statusCode << " " << status;
@@ -152,9 +153,10 @@ class http_Response {
         }
       }
       else if (it->name == "Expires") {
-        if(it->value == "-1"){
+        if (it->value == "-1") {
           EXPIRES = -1;
-        }else{
+        }
+        else {
           EXPIRES = stringTotime(it->value);
         }
       }
@@ -182,7 +184,7 @@ class http_Response {
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
     const char * format = "%a, %e %h %Y %X";
-    std::cout << time_str <<std::endl;
+    std::cout << time_str << std::endl;
     char * res = strptime(time_str.c_str(), format, &tm);
     if (res == nullptr) {
       std::cout << parseTime(mktime(&tm)) << std::endl;
