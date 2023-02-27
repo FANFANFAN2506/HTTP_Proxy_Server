@@ -21,8 +21,6 @@ Cache * myCache = new Cache(MAXCachingCapacity);
  * 1. std::thread, fd_guard
  * 3. response指针可以删了，免得销毁的时候误删
  * 4. 一些ico的 parse error问题
- * 6. cache valid -> 测试
- * 7. cache update 写好了，在put的时候会直接update，但是记得要log
 */
 
 /**
@@ -518,8 +516,10 @@ http_Response * Proxy::chunkHandle(vector<char> & input, int server_fd) {
     std::cout << "chunk parse failed" << std::endl;
     return NULL;
   }
+
   return resp;
 }
+
 
 /**
  * @func: check the response to see whether it have a line

@@ -86,7 +86,7 @@ class Cache {
       time_t currTime;
       time(&currTime);
 
-      if((currTime - receivedTime > maxAge || maxAge == -1) && (currTime < expireTime || expireTime == 0)){
+      if((currTime - receivedTime < maxAge || maxAge == -1) && (currTime < expireTime || expireTime == 0)){
         return false;
       }
     }
