@@ -21,11 +21,13 @@ class http_Response {
   std::string cache_ctrl;
   std::string etags;
   std::string last_str;
+  std::string no_cache_reason;
   time_t Date;
   time_t EXPIRES;
   int max_age;
   bool
       no_store;  //if 1, cannot cache(there is "no-store"), if 0 can cache(there is "no-cache" also set to 0)
+  bool no_cache;
   bool if_chunk;
 
  public:
@@ -39,6 +41,7 @@ class http_Response {
       cache_ctrl(),
       etags(),
       last_str(),
+      no_cache_reason(),
       Date(),
       EXPIRES(),
       max_age(),
@@ -54,10 +57,12 @@ class http_Response {
       cache_ctrl(""),
       etags(""),
       last_str(""),
+      no_cache_reason(""),
       Date(0),
       EXPIRES(0),
       max_age(-1),
       no_store(false),
+      no_cache(false),
       if_chunk(false) {
     //Get the http_ver,status,statuscode
     //get cache_Control expires
@@ -74,6 +79,8 @@ class http_Response {
   time_t return_date() const { return Date; }
   time_t return_expire() const { return EXPIRES; }
   int return_max() const { return max_age; }
+  bool return_no_store() const { return no_store; }
+  std::string return_no_chace() const { return no_cache_reason; }
   std::string return_response() const {
     std::stringstream sstream;
     sstream << http_ver << " " << statusCode << " " << status;
@@ -120,11 +127,28 @@ class http_Response {
         }
         size_t no_store_start = cache_ctrl.find("no-store");
         if (no_store_start != std::string::npos) {
+          std::string no_store_str = cache_ctrl.substr(no_store_start, 8);
+          no_cache_reason += no_store_str;
           no_store = true;
         }
         size_t no_cache_start = cache_ctrl.find("no-cache");
         if (no_cache_start != std::string::npos) {
           no_store = false;
+          no_cache = true;
+        }
+        size_t must_valid_start = cache_ctrl.find("must-revalidate");
+        if (must_valid_start != std::string::npos) {
+          no_store = false;
+          no_cache = true;
+        }
+        size_t private_start = cache_ctrl.find("private");
+        if (private_start != std::string::npos) {
+          std::string private_str = cache_ctrl.substr(private_start, 7);
+          if (no_cache_reason.size() != 0) {
+            no_cache_reason += " ";
+          }
+          no_cache_reason += private_str;
+          no_store = true;
         }
       }
       else if (it->name == "Expires") {
@@ -161,6 +185,7 @@ class http_Response {
     std::cout << time_str <<std::endl;
     char * res = strptime(time_str.c_str(), format, &tm);
     if (res == nullptr) {
+      std::cout << parseTime(mktime(&tm)) << std::endl;
       std::cerr << "wrong time conversion" << std::endl;
       return -1;
     }

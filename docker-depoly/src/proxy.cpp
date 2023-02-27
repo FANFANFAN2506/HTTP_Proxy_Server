@@ -1,15 +1,16 @@
 #include "proxy.hpp"
 
 #include <unistd.h>
+
 #include <cassert>
 #include <memory>
 
 #include "log.hpp"
 #include "utils.hpp"
 
-#define PORT "12345"              //listen port
-#define MAXPENDING 10             //pending request
-#define MAXCachingCapacity 500    //cache size
+#define PORT "12345"            //listen port
+#define MAXPENDING 10           //pending request
+#define MAXCachingCapacity 500  //cache size
 
 long requestID = 0;
 pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
@@ -119,7 +120,8 @@ void * runProxy(void * myProxy) {
     data_rec = recv(Proxy_instance->return_socket_des(), &data_buff.data()[0], 65536, 0);
     if (data_rec <= 0) {
       std::cerr << "cannot receive request" << std::endl;
-      log(std::string(to_string(Proxy_instance->uid)) + ": ERROR cannot receive the request from " + Proxy_instance->clientIP);
+      log(std::string(to_string(Proxy_instance->uid)) +
+          ": ERROR cannot receive the request from " + Proxy_instance->clientIP);
       throw std::exception();
     }
     data_buff.resize(data_rec);
@@ -176,22 +178,19 @@ void Proxy::judgeRequest() {
     std::cout << "Start CONNECT Proxy" << std::endl;
     proxyCONNECT();
     log(std::string(to_string(uid) + ": Tunnel closed \n"));
-
-  }else if (request->return_method() == "POST") {
+  }
+  else if (request->return_method() == "POST") {
     std::cout << "Start POST Proxy" << std::endl;
     proxyPOST();
-
   }
   else if (request->return_method() == "GET") {
     std::cout << "Start GET Proxy" << std::endl;
     proxyGET();
-
   }
   else {
     //Bad Request
     proxyERROR(400);
   }
-
 }
 
 /**
@@ -211,7 +210,8 @@ int Proxy::connectServer() {
   error = getaddrinfo(
       request->return_Host().c_str(), request->return_port().c_str(), &hints, &res);
   if (error != 0) {
-    log(std::string(to_string(uid) + ": ERROR cannot get the address info from the host \n"));
+    log(std::string(to_string(uid) +
+                    ": ERROR cannot get the address info from the host \n"));
     proxyERROR(404);
     pthread_exit(NULL);
   }
@@ -242,7 +242,7 @@ int Proxy::connectServer() {
  *        3. Connect the Tunnel
  * @param: {void}
  * @return: {void}
- */     
+ */
 void Proxy::proxyCONNECT() {
   int socket_server = connectServer();
 
@@ -279,7 +279,7 @@ void Proxy::proxyCONNECT() {
         std::vector<char> data_buff = recvChar(i);
         int length = data_buff.size();
         if (data_buff.size() == 0) {
-        //One of the socket closed on there side
+          //One of the socket closed on there side
           close(socket_server);
           close(socket_client);
           FD_ZERO(&listen_ports);
@@ -311,7 +311,7 @@ void Proxy::proxyCONNECT() {
  */
 void Proxy::proxyPOST() {
   int socket_server = connectServer();
-  
+
   int socket_client = socket_des;
   std::vector<char> send_request = request->return_line_send();
   http_Response * Proxy_temp = proxyFetch(socket_server, socket_client);
@@ -343,14 +343,16 @@ void Proxy::proxyGET() {
     int socket_server = connectServer();
     std::cout << "connected to server" << std::endl;
     response_instance = proxyFetch(socket_server, socket_client);
-    if (response_instance && response_instance->return_statuscode() == 200) {
+    if (response_instance && response_instance->return_statuscode() == 200 &&
+        response_instance->return_no_store() == false) {
       //if the response is 200 we need to cache it
       std::string removed_node = myCache->put(request_url, response_instance);
       if (removed_node.size() != 0) {
         //There is a node being removed, need to log
         log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
       }
-    }else{
+    }
+    else {
       close(socket_server);
       close(socket_client);
     }
@@ -405,15 +407,15 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
   int error = sendall(socket_server, &send_request.data()[0], &length);
   if (error == 0) {
     log(std::string(to_string(uid) + ": Requesting \"" + request->return_request() +
-              "\" from " + request->return_Host() + "\n"));
+                    "\" from " + request->return_Host() + "\n"));
 
     std::vector<char> input = recvBuff(socket_server);
     std::string str(input.begin(), input.end());
     size_t resp_pos = str.find("\r\n");
     std::string respStr = str.substr(0, resp_pos);
-    log(std::string(to_string(uid) + ": Received \"" + respStr +
-        "\" from " + request->return_Host() + "\n"));
-        
+    log(std::string(to_string(uid) + ": Received \"" + respStr + "\" from " +
+                    request->return_Host() + "\n"));
+
     if (check502(input)) {
       proxyERROR(502);
       pthread_exit(0);
@@ -434,12 +436,12 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
           return NULL;
         }
         else {
-          log(std::string(to_string(uid) + ": Responding \"" + r1->return_response() + "\"\n"));
+          log(std::string(to_string(uid) + ": Responding \"" + r1->return_response() +
+                          "\"\n"));
           return r1;
         }
       }
     }
-
   }
   return r1;
 }
@@ -497,10 +499,10 @@ void Proxy::proxyERROR(int code) {
 
   // send response
   int length = input.size();
-  sendall(socket_des, &input.data()[0], &length); 
+  sendall(socket_des, &input.data()[0], &length);
   log(std::string(to_string(uid) + ": Responding \"" + respStr + "\"\n"));
 
-  //keep receiving and forwarding 
+  //keep receiving and forwarding
   while (1) {
     std::vector<char> chunkMsg = recvChar(server_fd);
     if (chunkMsg.size() <= 0) {
@@ -525,8 +527,8 @@ void Proxy::proxyERROR(int code) {
 bool Proxy::check502(vector<char> & input) {
   std::string str(input.begin(), input.end());
   size_t resp_pos = str.find("\r\n\r\n");
-  if(resp_pos!=std::string::npos){      
-      return false;
+  if (resp_pos != std::string::npos) {
+    return false;
   }
   return true;
 }
@@ -597,8 +599,10 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
     //error in constructing Reponse;
     //502 error code
     std::cerr << "Reponse parsing fail" << std::endl;
-  }else {
-    log(std::string(to_string(uid) + ": Responding \"" + new_response->return_response() +"\"\n"));
+  }
+  else {
+    log(std::string(to_string(uid) + ": Responding \"" + new_response->return_response() +
+                    "\"\n"));
     if (new_response->return_statuscode() == 200) {
       //update and return to client
       std::string removed_url = myCache->put(request_url, new_response);
@@ -639,7 +643,7 @@ int Proxy::sendall(int s, char * buf, int * len) {
     bytesleft -= n;
   }
 
-  *len = total;  // return number actually sent here
+  *len = total;             // return number actually sent here
   return n == -1 ? -1 : 0;  // return -1 on failure, 0 on success
 }
 
@@ -648,15 +652,15 @@ int Proxy::sendall(int s, char * buf, int * len) {
  * @param: {response}  
  * @return: {void} 
  */
-void Proxy::receiveLog(http_Response * resp){
+void Proxy::receiveLog(http_Response * resp) {
   std::string cacheControl = resp->return_cache_ctrl();
-  if(resp->return_etags().size() == 0){
+  if (resp->return_etags().size() == 0) {
     log(std::string(to_string(uid) + ": Note Etags:" + resp->return_etags() + "\"\n"));
   }
-  if(cacheControl!=""){
+  if (cacheControl != "") {
     log(std::string(to_string(uid) + ": Note Cache-Control:" + cacheControl + "\"\n"));
-    if (cacheControl.find("private")!=std::string::npos || cacheControl.find("no-store")!=std::string::npos){
-
+    if (cacheControl.find("private") != std::string::npos ||
+        cacheControl.find("no-store") != std::string::npos) {
     }
   }
 }
