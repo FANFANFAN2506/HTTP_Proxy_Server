@@ -16,17 +16,17 @@
 
 class http_Request {
  private:
-  int socket_des;               //socket_des descriptor
-  std::string Line;             //Whole contents of the request
-  std::string REQUEST;          //Request line(first line)
+  int socket_des;       //socket_des descriptor
+  std::string Line;     //Whole contents of the request
+  std::string REQUEST;  //Request line(first line)
   std::string uri;
-  std::string header_data;      //For CONNECT method remove the request line
-  std::string IPFROM;           //Client IP
+  std::string header_data;  //For CONNECT method remove the request line
+  std::string IPFROM;       //Client IP
   std::string Method;
   std::string http_ver;
   std::string Host_line;
-  std::string Host_name;        //Target server IP
-  std::string Host_port;        //Target server port
+  std::string Host_name;  //Target server IP
+  std::string Host_port;  //Target server port
   std::string requestLine;
   std::vector<char> line_send;
   bool no_cache;
@@ -134,7 +134,12 @@ class http_Request {
       else if (it->name == "Cache-Control") {
         std::string cache_ctrl = it->value;
         size_t no_cache_start = cache_ctrl.find("no-cache");
-        if (no_cache_start != std::string::npos) {
+        if (no_cache_start !=
+            std::string::npos) {  // std::cout << "no_cache" << std::endl;
+          no_cache = true;
+        }
+        size_t must_revalid = cache_ctrl.find("must-revalidate");
+        if (must_revalid != std::string::npos) {
           no_cache = true;
         }
       }
