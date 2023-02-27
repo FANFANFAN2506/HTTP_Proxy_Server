@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <memory>
 
 #include "cache.hpp"
 #include "request.hpp"
@@ -19,17 +20,19 @@ class Proxy {
   long uid;
   int socket_des;
   std::string clientIP;
-  http_Request * request;
+  // http_Request * request;
+  std::unique_ptr<http_Request> request;
 
  public:
   //Constructor
-  Proxy() : uid(0), socket_des(0), clientIP(), request(NULL) {}
+  Proxy() : uid(0), socket_des(0), clientIP(), request(nullptr) {}
   Proxy(long id, int sd, std::string ip) :
-      uid(id), socket_des(sd), clientIP(ip), request(NULL) {}
+      uid(id), socket_des(sd), clientIP(ip), request(nullptr) {}
   //Get the private field
   long return_UID() const { return uid; }
   int return_socket_des() const { return socket_des; }
-  http_Request * return_request() const { return request; }
+  // http_Request * return_request() const { return request; }
+  // std::unique_ptr<http_Request> return_request() const { return request; }
   //Initialize Request
   void setRequest(std::string Line, std::vector<char> & line_send);
   int connectServer();
@@ -45,17 +48,13 @@ class Proxy {
   void HandleValidation(http_Response * response_instance, std::string request_url);
   int sendall(int s, char * buf, int * len);
   void receiveLog(http_Response * resp);
-  void destructProxy() {
-    if (request) {
-      delete request;
-    }
-  }
   ~Proxy() {
-    if (request) {
-      delete request;
-    }
+    // if (request) {
+    //   delete request;
+    // }
   }
 };
 
 void * runProxy(void * myProxy);
+void * runProxy1(std::unique_ptr<Proxy> myProxy);
 void proxyListen();

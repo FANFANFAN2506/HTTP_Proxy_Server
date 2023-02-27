@@ -143,21 +143,17 @@ class http_Request {
       else if (it->name == "Cache-Control") {
         std::string cache_ctrl = it->value;
         size_t no_cache_start = cache_ctrl.find("no-cache");
-        if (no_cache_start !=
-            std::string::npos) {  // std::cout << "no_cache" << std::endl;
+        if (no_cache_start != std::string::npos) {
           no_cache = true;
         }
         if (findNumber("max-age=", cache_ctrl) >= 0) {
           max_age = findNumber("max-age=", cache_ctrl);
-          std::cout << max_age << std::endl;
         }
         if (findNumber("max-stale=", cache_ctrl) >= 0) {
           max_stale = findNumber("max-stale=", cache_ctrl);
-          std::cout << max_stale << std::endl;
         }
         if (findNumber("min-fresh=", cache_ctrl) >= 0) {
           min_fresh = findNumber("min-fresh=", cache_ctrl);
-          std::cout << min_fresh << std::endl;
         }
         size_t must_revalid = cache_ctrl.find("must-revalidate");
         if (must_revalid != std::string::npos) {

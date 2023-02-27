@@ -121,7 +121,6 @@ class http_Response {
         cache_ctrl = it->value;
         if (findNumber("max-age=") >= 0) {
           max_age = findNumber("max-age=");
-          std::cout << max_age << std::endl;
         }
 
         size_t no_store_start = cache_ctrl.find("no-store");

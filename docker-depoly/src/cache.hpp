@@ -1,12 +1,16 @@
 #include <stdlib.h>
+
 #include <list>
+#include <mutex>
 #include <unordered_map>
 
 #include "response.hpp"
-extern pthread_mutex_t cacheLock;
+// extern pthread_mutex_t cacheLock;
+
 using namespace std;
 class Cache {
  public:
+  std::mutex cacheLock;
   size_t capacity;
   list<pair<string, http_Response *> > respList;
   unordered_map<string, list<pair<string, http_Response *> >::iterator> map;
@@ -20,16 +24,19 @@ class Cache {
    * @return: {response pointer if found, else NULL} 
    */
   http_Response * get(string url) {
-    pthread_mutex_lock(&cacheLock);
+    // pthread_mutex_lock(&cacheLock);
+    cacheLock.lock();
     const auto it = map.find(url);
     // If key does not exist
     if (it == map.cend()) {
-      pthread_mutex_unlock(&cacheLock);
+      // pthread_mutex_unlock(&cacheLock);
+      cacheLock.unlock();
       return NULL;
     }
     // Move this key to the front of the cache
     respList.splice(respList.begin(), respList, it->second);
-    pthread_mutex_unlock(&cacheLock);
+    // pthread_mutex_unlock(&cacheLock);
+    cacheLock.unlock();
     return it->second->second;
   }
 
@@ -39,7 +46,8 @@ class Cache {
    * @return: {the URI string if cache exceed max capacity and removed, else empty string} 
    */
   string put(string url, http_Response * value) {
-    pthread_mutex_lock(&cacheLock);
+    // pthread_mutex_lock(&cacheLock);
+    cacheLock.lock();
     const auto it = map.find(url);
     string ans = "";
 
@@ -50,7 +58,8 @@ class Cache {
       it->second->second = value;
       // Move this entry to the front of the cache
       respList.splice(respList.begin(), respList, it->second);
-      pthread_mutex_unlock(&cacheLock);
+      // pthread_mutex_unlock(&cacheLock);
+      cacheLock.unlock();
       return "";
     }
 
@@ -65,7 +74,8 @@ class Cache {
     // Insert the entry to the front of the cache and update mapping.
     respList.emplace_front(url, value);
     map[url] = respList.begin();
-    pthread_mutex_unlock(&cacheLock);
+    cacheLock.unlock();
+    // pthread_mutex_unlock(&cacheLock);
     return ans;
   }
 
@@ -84,9 +94,10 @@ class Cache {
       time_t currTime;
       currTime = time(0);
       time_t minMaxAge;
-      if(maxAge != -1 && rmaxAge != -1){
+      if (maxAge != -1 && rmaxAge != -1) {
         minMaxAge = maxAge > rmaxAge ? rmaxAge : maxAge;
-      }else{
+      }
+      else {
         minMaxAge = maxAge < rmaxAge ? rmaxAge : maxAge;
       }
       if ((currTime - receivedTime < minMaxAge || minMaxAge == -1) &&

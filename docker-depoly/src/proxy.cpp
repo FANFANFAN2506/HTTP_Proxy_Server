@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <memory>
+#include <thread>
 
 #include "log.hpp"
 #include "utils.hpp"
@@ -13,8 +14,8 @@
 #define MAXCachingCapacity 500  //cache size
 
 long requestID = 0;
-pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t cacheLock = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t logLock = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t cacheLock = PTHREAD_MUTEX_INITIALIZER;
 Cache * myCache = new Cache(MAXCachingCapacity);
 
 /**
@@ -93,14 +94,46 @@ void proxyListen() {
     }
     else {
       string ip = inet_ntoa(socket_addr.sin_addr);
-      pthread_t thread;
-      Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip);
-      pthread_create(&thread, NULL, runProxy, myProxy);
+      // pthread_t thread;
+      // Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip);
+      std::unique_ptr<Proxy> myProxy(new Proxy(requestID, client_connection_fd, ip));
+      // pthread_create(&thread, NULL, runProxy, myProxy);
+      std::thread proxythread(runProxy1, std::move(myProxy));
+      proxythread.detach();
       requestID++;
     }
   }
 
   return;
+}
+
+void * runProxy1(std::unique_ptr<Proxy> myProxy) {
+  std::unique_ptr<Proxy> Proxy_instance(std::move(myProxy));
+  // Proxy * Proxy_instance = (Proxy *)myProxy;
+  try {
+    // receive request
+    std::vector<char> data_buff(65536, 0);
+    int data_rec = 0;
+    data_rec = recv(Proxy_instance->return_socket_des(), &data_buff.data()[0], 65536, 0);
+    if (data_rec <= 0) {
+      std::cerr << "cannot receive request" << std::endl;
+      log(std::string(to_string(Proxy_instance->uid)) +
+          ": ERROR cannot receive the request from " + Proxy_instance->clientIP);
+      throw std::exception();
+    }
+    data_buff.resize(data_rec);
+
+    std::string Line(data_buff.begin(), data_buff.end());
+    Proxy_instance->setRequest(Line, data_buff);
+    Proxy_instance->judgeRequest();
+    // delete Proxy_instance;
+  }
+  catch (std::exception & e) {
+    // delete Proxy_instance;
+    std::cerr << e.what() << std::endl;
+  }
+  // Proxy_instance->destructProxy();
+  return NULL;
 }
 
 /**
@@ -145,18 +178,21 @@ void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
   int error;
   time_t curr_time;
   time(&curr_time);
-
-  request =
-      new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
+  std::unique_ptr<http_Request> request_new(
+      new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time));
+  request = std::move(request_new);
+  // request =
+  //     new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
   error = request->constructRequest();
 
   //if pasrse failed, respond with error 400
   if (error == -1) {
-    delete request;
+    // delete request;
     std::cerr << "Request construction failed" << std::endl;
     log(std::string(to_string(uid) + ": Warning invalid request received \n"));
     proxyERROR(400);
-    pthread_exit(0);
+    // pthread_exit(0);
+    std::terminate();
   }
 
   std::string msg = to_string(uid) + ": \"" + request->return_request() + "\" from " +
@@ -210,7 +246,8 @@ int Proxy::connectServer() {
     log(std::string(to_string(uid) +
                     ": ERROR cannot get the address info from the host \n"));
     proxyERROR(404);
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
+    std::terminate();
   }
 
   //create socket
@@ -218,7 +255,8 @@ int Proxy::connectServer() {
   if (socket_server == -1) {
     log(std::string(to_string(uid) + ": ERROR cannot create socket for host" + "\n"));
     proxyERROR(404);
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
+    std::terminate();
   }
 
   //connect the server
@@ -226,7 +264,8 @@ int Proxy::connectServer() {
   if (error == -1) {
     log(std::string(to_string(uid) + ": ERROR cannot connect to the socket \n"));
     proxyERROR(404);
-    pthread_exit(NULL);
+    // pthread_exit(NULL);
+    std::terminate();
   }
 
   freeaddrinfo(res);
@@ -267,7 +306,8 @@ void Proxy::proxyCONNECT() {
     if (error == -1) {
       std::cerr << "Error cannot select" << std::endl;
       log(std::string(to_string(uid) + ": ERROR cannot select \n"));
-      pthread_exit(NULL);
+      // pthread_exit(NULL);
+      std::terminate();
     }
 
     for (int i = 0; i <= maxdes; i++) {
@@ -338,7 +378,7 @@ void Proxy::proxyGET() {
     std::cout << "not in cache" << std::endl;
     log(std::string(to_string(uid) + ": not in cache\n"));
     int socket_server = connectServer();
-    std::cout << "connected to server" << std::endl;
+    // std::cout << "connected to server" << std::endl;
     response_instance = proxyFetch(socket_server, socket_client);
     if (response_instance && response_instance->return_statuscode() == 200 &&
         response_instance->return_no_store() == false) {
@@ -424,7 +464,8 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
 
     if (check502(input)) {
       proxyERROR(502);
-      pthread_exit(0);
+      // pthread_exit(0);
+      std::terminate();
     }
 
     http_Response * chunkResp = chunkHandle(input, socket_server);
@@ -569,9 +610,7 @@ std::vector<char> Proxy::ConstructValidation(http_Response * response_instance) 
   request_line += "\r\n";
 
   if (last_modify_str.size() != 0 || etags_response.size() != 0) {
-    std::cout << "request line constructed is " << request_line;
     std::vector<char> reply(request_line.begin(), request_line.end());
-    std::cout << "conditional request is: " << request_line << std::endl;
     return reply;
   }
   else {
@@ -603,7 +642,6 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
                   "\" from " + request->return_Host() + "\n"));
   sendall(socket_server, &revalid_request.data()[0], &length);
   //reply with the new response
-  std::cout << "wait for reply" << std::endl;
   std::vector<char> reply = recvBuff(socket_server);
   std::string str(reply.begin(), reply.end());
   size_t resp_pos = str.find("\r\n");
@@ -612,7 +650,6 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
   log(std::string(to_string(uid) + ": Received \"" + respStr + "\" from " +
                   request->return_Host() + "\n"));
   std::string reply_str(reply.begin(), reply.end());
-  std::cout << "Reply end" << std::endl;
   http_Response * new_response = new http_Response(socket_server, reply_str, reply);
   int error = new_response->parseResponse(reply);
   if (error == -1) {
