@@ -332,12 +332,6 @@ void Proxy::proxyPOST() {
  * @return: {void} 
  */
 void Proxy::proxyGET() {
-  /**
-   * 
-   * 2. 
-   * 3. 
-   * 4. 
-  */
   int socket_client = socket_des;
   std::string request_url = request->return_uri();
   //search from the cache
