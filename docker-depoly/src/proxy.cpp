@@ -655,12 +655,15 @@ int Proxy::sendall(int s, char * buf, int * len) {
 void Proxy::receiveLog(http_Response * resp) {
   std::string cacheControl = resp->return_cache_ctrl();
   if (resp->return_etags().size() == 0) {
-    log(std::string(to_string(uid) + ": Note Etags:" + resp->return_etags() + "\"\n"));
+    log(std::string(to_string(uid) + ": Note Etags: " + resp->return_etags() + "\n"));
   }
   if (cacheControl != "") {
-    log(std::string(to_string(uid) + ": Note Cache-Control:" + cacheControl + "\"\n"));
-    if (cacheControl.find("private") != std::string::npos ||
-        cacheControl.find("no-store") != std::string::npos) {
-    }
+    log(std::string(to_string(uid) + ": Note Cache-Control: " + cacheControl + "\n"));
+  }
+  std::string reason = resp->return_no_cache_reason();
+  if(reason.size()!=0){
+    log(std::string(to_string(uid) + ": not cacheable because: " + reason + "\n"));
+  }else if(resp->return_no_cache()){
+
   }
 }
