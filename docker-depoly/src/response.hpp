@@ -134,12 +134,10 @@ class http_Response {
         }
         size_t no_cache_start = cache_ctrl.find("no-cache");
         if (no_cache_start != std::string::npos) {
-          no_store = false;
           no_cache = true;
         }
         size_t must_valid_start = cache_ctrl.find("must-revalidate");
         if (must_valid_start != std::string::npos) {
-          no_store = false;
           no_cache = true;
         }
         size_t private_start = cache_ctrl.find("private");
@@ -184,7 +182,7 @@ class http_Response {
     struct tm tm;
     memset(&tm, 0, sizeof(tm));
     const char * format = "%a, %e %h %Y %X";
-    std::cout << time_str << std::endl;
+    std::cout << time_str <<std::endl;
     char * res = strptime(time_str.c_str(), format, &tm);
     if (res == nullptr) {
       std::cout << parseTime(mktime(&tm)) << std::endl;
