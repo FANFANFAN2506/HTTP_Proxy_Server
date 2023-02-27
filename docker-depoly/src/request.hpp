@@ -190,4 +190,8 @@ class http_Request {
     size_t host_line_end = host_line_whole.find_first_of("\r\n");
     Host_line = host_line_whole.substr(0, host_line_end);
   }
+
+  time_t calFresh(){
+    return max_stale - min_fresh;
+  }
 };

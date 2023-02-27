@@ -1,5 +1,4 @@
 #include <stdlib.h>
-
 #include <list>
 #include <unordered_map>
 
@@ -75,7 +74,7 @@ class Cache {
    * @param: {url: URI string of the website}  
    * @return: {True: expired or not found. False: not expired} 
    */
-  int checkExpire(string url) {
+  int checkExpire(string url, int rmaxAge) {
     const auto it = map.find(url);
     if (it != map.cend()) {
       http_Response * resp = (it->second->second);
@@ -84,7 +83,13 @@ class Cache {
       time_t receivedTime = resp->return_date();
       time_t currTime;
       currTime = time(0);
-      if ((currTime - receivedTime < maxAge || maxAge == -1) &&
+      time_t minMaxAge;
+      if(maxAge != -1 && rmaxAge != -1){
+        minMaxAge = maxAge > rmaxAge ? rmaxAge : maxAge;
+      }else{
+        minMaxAge = maxAge < rmaxAge ? rmaxAge : maxAge;
+      }
+      if ((currTime - receivedTime < minMaxAge || minMaxAge == -1) &&
           (currTime < expireTime || expireTime == 0)) {
         return false;
       }
