@@ -25,3 +25,6 @@ The danger log will be delivered based on the implementation categories as given
 ### chunk: 
 * For the chunked data, we want to reduce the delay for client receiving the response, instead of receiving all the data and then send at once, we choose to send while we are receving the data, this is the same effect as we use the direct connection. However, we still store the chunked response together for the later caching use. 
 ### cache:
+* For the cache part, we first use the vector to store. However, when the cache size become large. The search speed is slow. Then, we see the leetcode 146 problem and develop a LRU cache based on linked list and map. The get and put then are all O(1) operation.
+### Others:
+* For the dameon process, we use the docker to call the bash file and the bash file contains the while true operation. Therefore, even the process dumped by some interrupt. It will restart and and keep running.
