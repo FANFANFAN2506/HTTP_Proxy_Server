@@ -1,0 +1,162 @@
+*************************************************************************
+1. CONNECT:
+Every https could work, Feel free to surf online as normal:
+An Example:
+
+32: "CONNECT www.gstatic.com:443 HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 03:21:39 2023
+32: Responding "HTTP/1.1 200 OK" 
+33: "POST http://ocsp.pki.goog/gts1c3 HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 03:21:40 2023
+33: Requesting "POST http://ocsp.pki.goog/gts1c3 HTTP/1.1" from ocsp.pki.goog
+33: Received "HTTP/1.1 200 OK" from ocsp.pki.goog
+33: Responding "HTTP/1.1 200 OK"
+34: "POST http://ocsp.pki.goog/gts1c3 HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 03:21:40 2023
+34: Requesting "POST http://ocsp.pki.goog/gts1c3 HTTP/1.1" from ocsp.pki.goog
+34: Received "HTTP/1.1 200 OK" from ocsp.pki.goog
+34: Responding "HTTP/1.1 200 OK"
+32: Tunnel closed
+********************************************************************************************************
+2. GET:
+--------------------------------------------------------------------------------------------------------
+2.1 No Cache-control explicitly given:
+Etags and Last-modified are given to revalidate:
+Given 304 Not Modified from server:
+http://info.cern.ch/
+/*Request for the first time*/
+
+30: "GET http://info.cern.ch/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 03:26:46 2023
+30: not in cache
+30: Requesting "GET http://info.cern.ch/ HTTP/1.1" from info.cern.ch
+30: Received "HTTP/1.1 200 OK" from info.cern.ch
+30: Responding "HTTP/1.1 200 OK"
+/*Request again for several seconds*/
+33: "GET http://info.cern.ch/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 03:26:58 2023
+33: in cache, requires validation
+33: Requesting "GET http://info.cern.ch/ HTTP/1.1" from info.cern.ch
+33: Received "HTTP/1.1 304 Not Modified" from info.cern.ch
+33: Responding "HTTP/1.1 304 Not Modified"
+--------------------------------------------------------------------------------------------------------
+2.1
+The cache will expired for the second time due to Expires tag, and required revalidation:
+Received 200 OK back from the server:
+Here we use flask to simulate a website that will return 200 OK when we sent conditional request:
+http://127.0.0.1:5000/test1
+{
+        'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=360000, no-cache',
+        'Etags': '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
+        'Last-modified': 'Wed, 27 Feb 2023 17:28:00 GMT',
+        'Expires': 'Wed, 27 Feb 2023 18:30:00 GMT'
+}
+
+6: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 05:00:37 2023
+6: in cache, but expired at Mon Feb 27 23:30:00 2023
+6: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+6: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+11: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 05:00:37 2023
+11: in cache, but expired at Mon Feb 27 23:30:00 2023
+11: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+11: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+--------------------------------------------------------------------------------------------------------
+2.2 The cache is not expired, but it needs revalidation
+http://127.0.0.1:5000/test1
+{
+        'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=360000, no-cache',
+        'Etags': '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
+        'Last-modified': 'Wed, 27 Feb 2023 17:28:00 GMT'
+}
+        
+12: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:56:12 2023
+12: not in cache
+12: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+12: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+12: Responding "HTTP/1.1 200 OK"
+12: Note Etags: 
+12: Note Cache-Control: max-age=360000
+12: cached, expires at Sat Mar  4 08:56:12 2023
+14: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:56:20 2023
+14: in cache, requires validation
+14: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+14: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+14: Responding "HTTP/1.1 200 OK"
+--------------------------------------------------------------------------------------------------------
+2.2 Cache-Control max-age=20
+expired needs validation
+http://127.0.0.1:5000/
+{
+        'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=10',
+        'Etags': '"33a64df551425fcc55e4d42a148795d9f25f89d4"',
+        'Last-modified': 'Wed, 27 Feb 2023 17:28:00 GMT'
+}
+
+3: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:53:38 2023
+3: not in cache
+3: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+3: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+3: Responding "HTTP/1.1 200 OK"
+3: Note Etags: 
+3: Note Cache-Control: max-age=10
+3: cached, expires at Tue Feb 28 04:53:48 2023
+9: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:53:49 2023
+9: in cache, but expired at Tue Feb 28 04:53:48 2023
+9: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+9: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+9: Responding "HTTP/1.1 200 OK"
+--------------------------------------------------------------------------------------------------------
+2.3 no-store, chunked data, no-store
+http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx
+
+0: "GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:50:38 2023
+0: not in cache
+0: Requesting "GET http://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx HTTP/1.1" from www.httpwatch.com
+0: Received "HTTP/1.1 200 OK" from www.httpwatch.com
+0: Responding "HTTP/1.1 200 OK"
+0: Note Etags: 
+0: Note Cache-Control: no-cache, no-store
+0: not cacheable because no-store
+1: "GET http://www.httpwatch.com/favicon.ico HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:50:43 2023
+1: not in cache
+1: Requesting "GET http://www.httpwatch.com/favicon.ico HTTP/1.1" from www.httpwatch.com
+1: Received "HTTP/1.1 304 Not Modified" from www.httpwatch.com
+1: Responding "HTTP/1.1 304 Not Modified"
+--------------------------------------------------------------------------------------------------------
+2.4 Cache-control:private cannot cache
+{
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private'
+}
+
+33: "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 05:26:26 2023
+33: not in cache
+33: Requesting "GET http://vcm-30458.vm.duke.edu:5000/ HTTP/1.1" from vcm-30458.vm.duke.edu
+33: Received "HTTP/1.1 200 OK" from vcm-30458.vm.duke.edu
+33: Responding "HTTP/1.1 200 OK"
+33: Note Etags: 
+33: Note Cache-Control: private
+33: not cacheable because private
+--------------------------------------------------------------------------------------------------------
+2.5 Cache is full
+Here to test our cache removing when the max capacity is reached, the size was changed to small size for testing the evicted;
+In the program we hand in, we set the capacity quite large, so it may not be easy to see this in log.
+If you want to check this functionality, please feel free to adjust the capacity in proxy.cpp line 14.
+Feel free to check different http link in this website http://info.cern.ch/
+
+58: "GET http://info.cern.ch/hypertext/WWW/Help.html HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 05:05:43 2023
+58: not in cache
+58: Requesting "GET http://info.cern.ch/hypertext/WWW/Help.html HTTP/1.1" from info.cern.ch
+58: Received "HTTP/1.1 200 OK" from info.cern.ch
+58: Responding "HTTP/1.1 200 OK"
+58: cached, expires at Not Declared
+(no-id): NOTE evicted info.cern.ch80http://info.cern.ch/from cache
+********************************************************************************************************
+POST:
+http://httpbin.org/forms/post
+
+26: "GET http://httpbin.org/forms/post HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:21:15 2023
+26: in cache, valid
+31: "POST http://httpbin.org/post HTTP/1.1" from 174.99.38.185 @ Tue Feb 28 04:21:36 2023
+31: Requesting "POST http://httpbin.org/post HTTP/1.1" from httpbin.org
+31: Received "HTTP/1.1 200 OK" from httpbin.org
+31: Responding "HTTP/1.1 200 OK"
+********************************************************************************************************

@@ -360,7 +360,7 @@ void Proxy::proxyGET() {
         std::string removed_node = myCache->put(request_url, response_instance);
         if (removed_node.size() != 0) {
           //There is a node being removed, need to log
-          log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
+          log(std::string("(no-id): NOTE evicted" + removed_node + "from cache\n"));
         }
       }
     }
@@ -636,7 +636,7 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
       //update and return to client
       std::string removed_url = myCache->put(request_url, new_response);
       if (removed_url.size() != 0) {
-        log(std::string("(no-id): NOTE evicted" + removed_url + "from cache"));
+        log(std::string("(no-id): NOTE evicted" + removed_url + " from cache \r\n"));
       }
       int length = reply.size();
       sendall(socket_client, &reply.data()[0], &length);
@@ -704,11 +704,10 @@ void Proxy::receiveLog(http_Response * resp) {
     time_t recvTime = resp->return_date();
     if (max_age == -1 && expireTime == 0) {
       //no expire
-      log(std::string(to_string(uid) + ": cached, expires at Not Declared"));
+      log(std::string(to_string(uid) + ": cached, expires at Not Declared\n"));
     }
     else if (max_age != -1) {
-      log(std::string(to_string(uid) + ": cached, expires at " +
-                      parseTime(recvTime + max_age)));
+      log(std::string(to_string(uid) + ": cached, expires at " + parseTime(recvTime + max_age)));
     }
     else {
       log(std::string(to_string(uid) + ": cached, expires at " + parseTime(expireTime)));
