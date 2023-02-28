@@ -19,13 +19,14 @@ class Proxy {
  public:
   long uid;
   int socket_des;
+  int server_des;
   std::string clientIP;
   // http_Request * request;
   std::unique_ptr<http_Request> request;
 
  public:
   //Constructor
-  Proxy() : uid(0), socket_des(0), clientIP(), request(nullptr) {}
+  Proxy() : uid(0), socket_des(0), server_des(-1), clientIP(), request(nullptr) {}
   Proxy(long id, int sd, std::string ip) :
       uid(id), socket_des(sd), clientIP(ip), request(nullptr) {}
   //Get the private field
@@ -49,6 +50,10 @@ class Proxy {
   int sendall(int s, char * buf, int * len);
   void receiveLog(http_Response * resp);
   ~Proxy() {
+    close(socket_des);
+    if (server_des) {
+      close(server_des);
+    }
     // if (request) {
     //   delete request;
     // }
