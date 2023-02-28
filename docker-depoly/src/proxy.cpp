@@ -19,12 +19,6 @@ long requestID = 0;
 Cache * myCache = new Cache(MAXCachingCapacity);
 
 /**
- * 1. std::thread, fd_guard
- * 3. response指针可以删了，免得销毁的时候误删
- * 4. 一些ico的 parse error问题
- */
-
-/**
  * @func: start the listen process in the main thread
  *  create proxy thread for all incoming request on PORT
  * @param: {void}  
@@ -95,9 +89,7 @@ void proxyListen() {
     else {
       string ip = inet_ntoa(socket_addr.sin_addr);
       // pthread_t thread;
-      // Proxy * myProxy = new Proxy(requestID, client_connection_fd, ip);
       std::unique_ptr<Proxy> myProxy(new Proxy(requestID, client_connection_fd, ip));
-      // pthread_create(&thread, NULL, runProxy, myProxy);
       std::thread proxythread(runProxy1, std::move(myProxy));
       proxythread.detach();
       requestID++;
@@ -113,7 +105,6 @@ void proxyListen() {
  */
 void * runProxy1(std::unique_ptr<Proxy> myProxy) {
   std::unique_ptr<Proxy> Proxy_instance(std::move(myProxy));
-  // Proxy * Proxy_instance = (Proxy *)myProxy;
   try {
     // receive request
     std::vector<char> data_buff = recvBuff(Proxy_instance->return_socket_des());
@@ -124,7 +115,6 @@ void * runProxy1(std::unique_ptr<Proxy> myProxy) {
   }
   catch (std::exception & e) {
     // delete Proxy_instance;
-    // std::cerr << e.what() << std::endl;
     return NULL;
   }
   return NULL;
@@ -159,7 +149,6 @@ void * runProxy(void * myProxy) {
     delete Proxy_instance;
     std::cerr << e.what() << std::endl;
   }
-  // Proxy_instance->destructProxy();
   return NULL;
 }
 
@@ -175,8 +164,6 @@ void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
   std::unique_ptr<http_Request> request_new(
       new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time));
   request = std::move(request_new);
-  // request =
-  //     new http_Request(this->socket_des, Line, line_send, this->clientIP, curr_time);
   error = request->constructRequest();
 
   //if pasrse failed, respond with error 400
@@ -185,8 +172,6 @@ void Proxy::setRequest(std::string Line, std::vector<char> & line_send) {
     if (line_send.size() > 4) {
       std::cerr << "Request construction failed" << std::endl;
       log(std::string(to_string(uid) + ": Warning invalid request received \n"));
-      // pthread_exit(0);
-      // std::terminate();
     }
     proxyERROR(400);
     throw std::exception();
@@ -243,8 +228,6 @@ int Proxy::connectServer() {
     log(std::string(to_string(uid) +
                     ": ERROR cannot get the address info from the host \n"));
     proxyERROR(404);
-    // pthread_exit(NULL);
-    // std::terminate();
     throw std::exception();
   }
 
@@ -253,8 +236,6 @@ int Proxy::connectServer() {
   if (socket_server == -1) {
     log(std::string(to_string(uid) + ": ERROR cannot create socket for host" + "\n"));
     proxyERROR(404);
-    // pthread_exit(NULL);
-    // std::terminate();
     throw std::exception();
   }
 
@@ -263,8 +244,6 @@ int Proxy::connectServer() {
   if (error == -1) {
     log(std::string(to_string(uid) + ": ERROR cannot connect to the socket \n"));
     proxyERROR(404);
-    // pthread_exit(NULL);
-    // std::terminate();
     throw std::exception();
   }
 
@@ -306,8 +285,6 @@ void Proxy::proxyCONNECT() {
     if (error == -1) {
       std::cerr << "Error cannot select" << std::endl;
       log(std::string(to_string(uid) + ": ERROR cannot select \n"));
-      // pthread_exit(NULL);
-      // std::terminate();
       throw std::exception();
     }
 
@@ -317,11 +294,6 @@ void Proxy::proxyCONNECT() {
         std::vector<char> data_buff = recvChar(i);
         int length = data_buff.size();
         if (data_buff.size() == 0) {
-          //One of the socket closed on there side
-          // if (i == socket_server) {
-          //   close(socket_server);
-          // }
-          // close(socket_client);-------------
           FD_ZERO(&listen_ports);
           end = 0;
           return;
@@ -358,8 +330,6 @@ void Proxy::proxyPOST() {
   if (Proxy_temp != NULL) {
     delete Proxy_temp;
   }
-  // close(socket_client);-------------
-  // close(socket_server);-------------
 }
 
 /**
@@ -383,23 +353,19 @@ void Proxy::proxyGET() {
     int socket_server = connectServer();
     this->server_des = socket_server;
     response_instance = proxyFetch(socket_server, socket_client);
-    if (response_instance && response_instance->return_statuscode() == 200 &&
-        response_instance->return_no_store() == false) {
+    if (response_instance && response_instance->return_statuscode() == 200) {
+      receiveLog(response_instance);
       //if the response is 200 we need to cache it
-      std::string removed_node = myCache->put(request_url, response_instance);
-      if (removed_node.size() != 0) {
-        //There is a node being removed, need to log
-        log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
+      if(response_instance->return_no_store() == false){
+        std::string removed_node = myCache->put(request_url, response_instance);
+        if (removed_node.size() != 0) {
+          //There is a node being removed, need to log
+          log(std::string("(no-id): NOTE evicted" + removed_node + "from cache"));
+        }
       }
     }
     //No need to cache
     return;
-    // else {
-    //   // close(socket_server);---------
-    //   // close(socket_client);-------------
-
-    //   return;
-    // }
   }
   else {
     //If we find this in the cache;
@@ -470,8 +436,6 @@ http_Response * Proxy::proxyFetch(int socket_server, int socket_client) {
 
     if (check502(input)) {
       proxyERROR(502);
-      // pthread_exit(0);
-      // std::terminate();
       throw std::exception();
     }
 
@@ -523,7 +487,6 @@ void Proxy::proxyERROR(int code) {
   send(client_fd, resp, strlen(resp), 0);
   log(std::string(to_string(uid) + ": Responding \"" +
                   logLine.substr(0, logLine.size() - 4) + "\"\n"));
-  // close(client_fd);----------
 }
 
 /**
@@ -689,8 +652,6 @@ void Proxy::HandleValidation(http_Response * response_instance, std::string requ
       sendall(socket_client, &reply.data()[0], &length);
     }
   }
-  // close(socket_server);-----------------
-  // close(socket_client);-----------------
 }
 
 /**
