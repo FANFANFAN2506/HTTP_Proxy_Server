@@ -376,8 +376,22 @@ void Proxy::proxyGET() {
     if (if_expire) {
       //Expired cached, need update
       std::cout << "expire cache" << std::endl;
-      log(std::string(to_string(uid) + ": in cache, but expired at " +
-                      parseTime(response_instance->return_expire()) + "\n"));
+      if (response_instance->return_expire() != 0) {
+        log(std::string(to_string(uid) + ": in cache, but expired at " +
+                        parseTime(response_instance->return_expire())));
+      }
+      else {
+        time_t minMaxAge;
+        time_t maxAge = response_instance->return_max();
+        if (maxAge != -1 && request_max_age != -1) {
+          minMaxAge = maxAge > request_max_age ? request_max_age : maxAge;
+        }
+        else {
+          minMaxAge = maxAge < request_max_age ? request_max_age : maxAge;
+        }
+        log(std::string(to_string(uid) + ": in cache, but expired at " +
+                        parseTime(response_instance->return_date() + minMaxAge) + "\n"));
+      }
       HandleValidation(response_instance, request_url);
       return;
     }
@@ -685,7 +699,7 @@ int Proxy::sendall(int s, char * buf, int * len) {
  */
 void Proxy::receiveLog(http_Response * resp) {
   std::string cacheControl = resp->return_cache_ctrl();
-  if (resp->return_etags().size() == 0) {
+  if (resp->return_etags().size() != 0) {
     log(std::string(to_string(uid) + ": Note Etags: " + resp->return_etags() + "\n"));
   }
   if (cacheControl != "") {

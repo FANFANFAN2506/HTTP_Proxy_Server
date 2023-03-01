@@ -2,7 +2,7 @@
 #define LOG_HPP
 
 #include <pthread.h>
-
+#include <mutex>
 #include <fstream>
 
 // extern pthread_mutex_t logLock;
